@@ -30,13 +30,16 @@ public class AuthService {
         user.setName(request.getName());
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRole("USER");
+        
+        // Assign ADMIN role to specific email
+        if (request.getEmail().equalsIgnoreCase("rohit.admin@gmail.com")) {
+            user.setRole("ADMIN");
+        } else {
+            user.setRole("USER");
+        }
 
         userRepository.save(user);
 
-        // Auto-login after register (optional, but returning token implies it)
-        // For simplicity, we can just generating token from user info directly or authenticating
-        // Let's create a UserDetails equivalent for token generation
         var userDetails = new org.springframework.security.core.userdetails.User(
                 user.getEmail(),
                 user.getPassword(),
@@ -44,7 +47,7 @@ public class AuthService {
         );
         
         String token = jwtUtil.generateToken(userDetails);
-        return new AuthResponse(token);
+        return new AuthResponse(token, user.getRole(), user.getName());
     }
 
     public AuthResponse login(AuthRequest request) {
@@ -65,6 +68,6 @@ public class AuthService {
         );
 
         String token = jwtUtil.generateToken(userDetails);
-        return new AuthResponse(token);
+        return new AuthResponse(token, user.getRole(), user.getName());
     }
 }

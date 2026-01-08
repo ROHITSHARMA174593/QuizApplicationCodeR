@@ -26,4 +26,7 @@ public class CodingProblem {
     @ManyToOne
     @JoinColumn(name = "category_id", nullable = false)
     private SkillCategory category;
+
+    @OneToMany(mappedBy = "codingProblem", cascade = CascadeType.ALL, orphanRemoval = true)
+    private java.util.List<TestCase> testCases = new java.util.ArrayList<>();
 }

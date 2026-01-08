@@ -69,7 +69,7 @@ public class DataInitializer implements CommandLineRunner {
     }
     
     private void createProblem(String title, String desc, String diff, SkillCategory cat) {
-        CodingProblem problem = new CodingProblem(null, title, desc, diff, cat);
+        CodingProblem problem = new CodingProblem(null, title, desc, diff, cat, new java.util.ArrayList<>());
         problemRepository.save(problem);
     }
 }

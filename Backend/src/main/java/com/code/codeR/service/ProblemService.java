@@ -22,6 +22,9 @@ public class ProblemService {
     }
 
     public CodingProblem createProblem(CodingProblem problem) {
+        if (problem.getTestCases() != null) {
+            problem.getTestCases().forEach(tc -> tc.setCodingProblem(problem));
+        }
         return problemRepository.save(problem);
     }
 }
