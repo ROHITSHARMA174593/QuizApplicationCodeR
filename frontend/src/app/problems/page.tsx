@@ -65,6 +65,7 @@ export default function ProblemsPage({ params }: { params?: Promise<{ categoryId
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: idx * 0.05 }}
           >
+            <Link href={`/problems/solve/${problem.id}`} className="block">
             <Card className="border-zinc-800 bg-zinc-900/40 hover:bg-zinc-900/60 hover:border-zinc-700 transition-all cursor-pointer group">
               <CardContent className="p-6 flex flex-col sm:flex-row gap-6 items-start sm:items-center justify-between">
                 <div className="space-y-2 flex-1">
@@ -89,6 +90,7 @@ export default function ProblemsPage({ params }: { params?: Promise<{ categoryId
                 </Button>
               </CardContent>
             </Card>
+            </Link>
           </motion.div>
         ))}
       </div>

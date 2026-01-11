@@ -21,6 +21,11 @@ public class ProblemService {
         return problemRepository.findAll();
     }
 
+    public CodingProblem getProblemById(Long id) {
+        return problemRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Problem not found with id: " + id));
+    }
+
     public CodingProblem createProblem(CodingProblem problem) {
         if (problem.getTestCases() != null) {
             problem.getTestCases().forEach(tc -> tc.setCodingProblem(problem));
