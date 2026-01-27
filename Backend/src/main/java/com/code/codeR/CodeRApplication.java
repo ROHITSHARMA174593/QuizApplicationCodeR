@@ -9,5 +9,3 @@ public class CodeRApplication {
 		SpringApplication.run(CodeRApplication.class, args);
 	}
 }
-
-

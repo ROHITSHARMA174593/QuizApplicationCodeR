@@ -21,17 +21,27 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        if (categoryRepository.count() == 0) {
-            // 1. Create Categories (Keeping these as structural basics)
-            SkillCategory html = new SkillCategory(null, "HTML", "HyperText Markup Language");
-            SkillCategory css = new SkillCategory(null, "CSS", "Cascading Style Sheets");
-            SkillCategory js = new SkillCategory(null, "JavaScript", "Logic for the web");
-            SkillCategory java = new SkillCategory(null, "Java", "Object-oriented programming");
+        // 1. Create Categories (Idempotent check)
+        createCategoryIfNotFound("HTML", "HyperText Markup Language");
+        createCategoryIfNotFound("CSS", "Cascading Style Sheets");
+        createCategoryIfNotFound("JavaScript", "Logic for the web");
+        createCategoryIfNotFound("Java", "Object-oriented programming");
+        createCategoryIfNotFound("DSA", "Data Structures and Algorithms");
+        
+        
+        createDefaultUsers();
+        System.out.println("--- CATEGORIES & USERS CHECKED/INITIALIZED ---");
+    }
 
-            categoryRepository.saveAll(Arrays.asList(html, css, js, java));
-            System.out.println("--- SAMPLE CATEGORIES INITIALIZED ---");
+    private void createCategoryIfNotFound(String name, String description) {
+        if (categoryRepository.findByName(name).isEmpty()) {
+            SkillCategory category = new SkillCategory(null, name, description);
+            categoryRepository.save(category);
+            System.out.println("Created category: " + name);
         }
+    }
 
+    private void createDefaultUsers() {
         // 4. Create Default User (Test User)
         if (!userRepository.existsByEmail("test@coder.com")) {
             User user = new User();
@@ -44,14 +54,14 @@ public class DataInitializer implements CommandLineRunner {
         }
 
         // 5. Create Default Admin
-        if (!userRepository.existsByEmail("admin@coder.com")) {
+        if (!userRepository.existsByEmail("admin@gmail.com")) {
             User admin = new User();
-            admin.setName("Admin User");
-            admin.setEmail("admin@coder.com");
-            admin.setPassword(passwordEncoder.encode("admin"));
+            admin.setName("Admin User(rohitsharma)");
+            admin.setEmail("admin@gmail.com");
+            admin.setPassword(passwordEncoder.encode("rohitsharma"));
             admin.setRole("ADMIN");
             userRepository.save(admin);
-            System.out.println("--- ADMIN USER CREATED ---");
+            System.out.println("--- ADMIN USER CREATED (admin@gmail.com) ---");
         }
     }
 

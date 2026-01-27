@@ -23,6 +23,19 @@ public class CodingProblem {
     @Column(nullable = false)
     private String difficulty; // Easy, Medium, Hard
 
+    @Column
+    private String methodName;
+
+    @Column
+    private String returnType;
+
+    @Column(columnDefinition = "TEXT")
+    private String parameters; // JSON format e.g. [{"type":"int","name":"a"}, ...]
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "topic_id")
+    private Topic topic;
+
     @ManyToOne
     @JoinColumn(name = "category_id", nullable = false)
     private SkillCategory category;

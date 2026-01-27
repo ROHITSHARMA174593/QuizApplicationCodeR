@@ -2,30 +2,35 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { ChevronRight, Code, BookOpen, Clock, AlertCircle } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card";
+import { ChevronRight, Code, BookOpen, AlertCircle, ArrowLeft } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import api from "@/services/api";
 import { CodingProblem } from "@/types";
 
-export default function ProblemsPage({ params }: { params?: Promise<{ categoryId: string }> }) {
-  const [categoryId, setCategoryId] = useState<string | null>(null);
-    
+export default function TopicProblemsPage({ params }: { params: Promise<{ categoryId: string, topicId: string }> }) {
+  const router = useRouter();
+  const [topicId, setTopicId] = useState<string>("");
+  const [categoryId, setCategoryId] = useState<string>("");
+
   useEffect(() => {
-    if (params) {
-        params.then(p => setCategoryId(p.categoryId));
-    }
+    params.then(p => {
+        setTopicId(p.topicId);
+        setCategoryId(p.categoryId);
+    });
   }, [params]);
 
   const [problems, setProblems] = useState<CodingProblem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!topicId) return;
+
     const fetchProblems = async () => {
       try {
-        const url = categoryId ? `/problems/category/${categoryId}` : "/problems";
-        const res = await api.get(url);
+        const res = await api.get(`/problems/topic/${topicId}`);
         setProblems(res.data);
       } catch (error) {
         console.error("Failed to fetch problems:", error);
@@ -34,17 +39,26 @@ export default function ProblemsPage({ params }: { params?: Promise<{ categoryId
       }
     };
     fetchProblems();
-  }, [categoryId]);
+  }, [topicId]);
 
   if (loading) return <div className="flex justify-center p-8"><div className="animate-spin h-8 w-8 border-2 border-blue-500 rounded-full border-t-transparent"/></div>;
 
   return (
     <div className="container mx-auto p-6 pt-24 max-w-7xl">
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-          <Code className="text-blue-500" />
-          {categoryId ? "Category Problems" : "All Coding Challenges"}
-        </h1>
+        <div>
+            <Button 
+                variant="ghost" 
+                onClick={() => router.push(`/problems/${categoryId}`)}
+                className="mb-2 text-zinc-400 hover:text-white pl-0"
+            >
+                <ArrowLeft className="mr-2 h-4 w-4" /> Back to Topics
+            </Button>
+            <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+            <Code className="text-blue-500" />
+            Topic Problems
+            </h1>
+        </div>
         <p className="text-zinc-400">Sharpen your skills with these coding problems.</p>
       </div>
 

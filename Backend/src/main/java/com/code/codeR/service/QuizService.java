@@ -35,4 +35,8 @@ public class QuizService {
     public QuizQuestion createQuestion(QuizQuestion question) {
         return questionRepository.save(question);
     }
+
+    public List<QuizQuestion> getQuestionsByTopic(Long topicId) {
+        return questionRepository.findByTopicId(topicId);
+    }
 }

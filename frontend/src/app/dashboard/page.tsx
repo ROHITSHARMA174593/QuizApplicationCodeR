@@ -181,6 +181,8 @@ export default function DashboardPage() {
           >
             {categories.map((category) => {
               const Icon = iconMap[category.name] || Code;
+              const isDSA = category.name === "DSA";
+              
               return (
                 <motion.div key={category.id} variants={item}>
                   <Card className="h-full hover:border-zinc-600 transition-colors group relative overflow-hidden">
@@ -194,21 +196,24 @@ export default function DashboardPage() {
                       </div>
                       <CardTitle>{category.name}</CardTitle>
                       <CardDescription>
-                        Master {category.name} through quizzes and problems
+                        {isDSA ? "Master Data Structures & Algorithms" : `Test your ${category.name} knowledge`}
                       </CardDescription>
                     </CardHeader>
                     
-                    <CardFooter className="grid grid-cols-2 gap-3">
-                      <Link href={`/quiz/${category.id}`} className="w-full">
-                        <Button variant="outline" className="w-full text-xs hover:bg-purple-900/30 hover:text-purple-300 hover:border-purple-500/50">
-                          Quiz
-                        </Button>
-                      </Link>
-                      <Link href={`/problems/${category.id}`} className="w-full">
-                        <Button variant="outline" className="w-full text-xs hover:bg-emerald-900/30 hover:text-emerald-300 hover:border-emerald-500/50">
-                          Problems
-                        </Button>
-                      </Link>
+                    <CardFooter className="flex gap-3">
+                      {isDSA ? (
+                        <Link href={`/problems/${category.id}`} className="w-full">
+                          <Button variant="outline" className="w-full text-xs hover:bg-emerald-900/30 hover:text-emerald-300 hover:border-emerald-500/50">
+                            Solve Problems
+                          </Button>
+                        </Link>
+                      ) : (
+                        <Link href={`/quiz/${category.id}`} className="w-full">
+                          <Button variant="outline" className="w-full text-xs hover:bg-purple-900/30 hover:text-purple-300 hover:border-purple-500/50">
+                            Take Quiz
+                          </Button>
+                        </Link>
+                      )}
                     </CardFooter>
                   </Card>
                 </motion.div>

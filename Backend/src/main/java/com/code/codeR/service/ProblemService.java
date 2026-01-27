@@ -32,4 +32,8 @@ public class ProblemService {
         }
         return problemRepository.save(problem);
     }
+
+    public List<CodingProblem> getProblemsByTopic(Long topicId) {
+        return problemRepository.findByTopicId(topicId);
+    }
 }

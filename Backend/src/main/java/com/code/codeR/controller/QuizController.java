@@ -44,4 +44,9 @@ public class QuizController {
     public ResponseEntity<QuizQuestion> createQuestion(@RequestBody QuizQuestion question) {
         return ResponseEntity.ok(quizService.createQuestion(question));
     }
+
+    @GetMapping("/questions/topic/{topicId}")
+    public ResponseEntity<List<QuizQuestion>> getQuestionsByTopic(@PathVariable Long topicId) {
+        return ResponseEntity.ok(quizService.getQuestionsByTopic(topicId));
+    }
 }

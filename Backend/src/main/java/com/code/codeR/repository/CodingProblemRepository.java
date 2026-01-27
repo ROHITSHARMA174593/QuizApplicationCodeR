@@ -6,4 +6,5 @@ import java.util.List;
 
 public interface CodingProblemRepository extends JpaRepository<CodingProblem, Long> {
     List<CodingProblem> findByCategoryId(Long categoryId);
+    List<CodingProblem> findByTopicId(Long topicId);
 }

@@ -1,6 +1,8 @@
 package com.code.codeR.controller;
 
 import com.code.codeR.model.User;
+import com.code.codeR.repository.CodingProblemRepository;
+import com.code.codeR.repository.QuizQuestionRepository;
 import com.code.codeR.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -17,15 +19,19 @@ import java.util.Map;
 public class AdminController {
 
     private final UserRepository userRepository;
+    private final CodingProblemRepository codingProblemRepository;
+    private final QuizQuestionRepository quizQuestionRepository;
 
     @GetMapping("/stats")
     public ResponseEntity<Map<String, Object>> getSystemStats() {
         Map<String, Object> stats = new HashMap<>();
         long userCount = userRepository.count();
-        // Mocking other stats for now as we don't have repositories exposed here for them yet
+        long quizCount = quizQuestionRepository.count();
+        long problemCount = codingProblemRepository.count();
+        
         stats.put("totalUsers", userCount);
-        stats.put("activeQuizzes", 12); 
-        stats.put("totalProblems", 25);
+        stats.put("activeQuizzes", quizCount); 
+        stats.put("totalProblems", problemCount);
         return ResponseEntity.ok(stats);
     }
 

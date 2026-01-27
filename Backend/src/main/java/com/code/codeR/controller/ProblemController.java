@@ -45,4 +45,9 @@ public class ProblemController {
     public ResponseEntity<CodingProblem> createProblem(@RequestBody CodingProblem problem) {
         return ResponseEntity.ok(problemService.createProblem(problem));
     }
+
+    @GetMapping("/topic/{topicId}")
+    public ResponseEntity<List<CodingProblem>> getProblemsByTopic(@PathVariable Long topicId) {
+        return ResponseEntity.ok(problemService.getProblemsByTopic(topicId));
+    }
 }

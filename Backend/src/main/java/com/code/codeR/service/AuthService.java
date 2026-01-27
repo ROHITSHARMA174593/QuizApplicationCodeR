@@ -31,12 +31,8 @@ public class AuthService {
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         
-        // Assign ADMIN role to specific email
-        if (request.getEmail().equalsIgnoreCase("rohit.admin@gmail.com")) {
-            user.setRole("ADMIN");
-        } else {
-            user.setRole("USER");
-        }
+        // Assign USER role to all new registrations
+        user.setRole("USER");
 
         userRepository.save(user);
 

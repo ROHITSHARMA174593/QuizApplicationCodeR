@@ -20,20 +20,23 @@ public class CodeExecutionService {
     private final ProblemService problemService;
     private final com.code.codeR.repository.UserRepository userRepository;
     private final com.code.codeR.repository.UserProgressRepository userProgressRepository;
+    private final CodeSecurityValidator securityValidator;
+    private final MainMethodGenerator mainMethodGenerator;
 
-    public SubmissionResponse executeJavaCode(Long problemId, String code, String userEmail) {
+    public SubmissionResponse executeJavaCode(Long problemId, String userCode, String userEmail) {
         CodingProblem problem = problemService.getProblemById(problemId);
         List<TestCase> testCases = problem.getTestCases();
 
         if (testCases.isEmpty()) {
-            return SubmissionResponse.builder()
-                    .success(false)
-                    .message("No test cases found for this problem.")
-                    .build();
+            return SubmissionResponse.builder().success(false).message("No test cases found for this problem.").build();
         }
 
-        // Use the first test case as requested ("only 1 test case")
-        TestCase testCase = testCases.get(0);
+        // 1. Security Check
+        try {
+            securityValidator.validate(userCode);
+        } catch (SecurityException e) {
+            return SubmissionResponse.builder().success(false).message(e.getMessage()).build();
+        }
 
         String tempDir = System.getProperty("java.io.tmpdir") + File.separator + "codeR_" + UUID.randomUUID();
         File directory = new File(tempDir);
@@ -42,20 +45,20 @@ public class CodeExecutionService {
         }
 
         try {
-            // 1. Write Code to File
-            // Java class name must match file name. Assuming user submits "public class Solution"
-            if (!code.contains("class Solution")) {
-                 return SubmissionResponse.builder()
-                    .success(false)
-                    .message("Compilation Error: Public class must be named 'Solution'")
-                    .build();
+            // 2. Generate Code
+            String mainCode = mainMethodGenerator.generateMainClass(problem);
+            String solutionCode;
+            if (userCode.contains("class Solution")) {
+                solutionCode = userCode;
+            } else {
+                solutionCode = "public class Solution {\n" + userCode + "\n}";
             }
-            
-            File sourceFile = new File(directory, "Solution.java");
-            Files.writeString(sourceFile.toPath(), code);
 
-            // 2. Compile
-            ProcessBuilder compileProcessBuilder = new ProcessBuilder("javac", sourceFile.getAbsolutePath());
+            Files.writeString(new File(directory, "Main.java").toPath(), mainCode);
+            Files.writeString(new File(directory, "Solution.java").toPath(), solutionCode);
+
+            // 3. Compile
+            ProcessBuilder compileProcessBuilder = new ProcessBuilder("javac", "Main.java", "Solution.java");
             compileProcessBuilder.directory(directory);
             Process compileProcess = compileProcessBuilder.start();
             boolean compiled = compileProcess.waitFor(10, TimeUnit.SECONDS);
@@ -65,23 +68,26 @@ public class CodeExecutionService {
                  return SubmissionResponse.builder()
                     .success(false)
                     .message("Compilation Failed")
-                    .output(error)
+                    .output(error.replace(tempDir, "")) // Hide path
                     .build();
             }
 
-            // 3. Run
-            ProcessBuilder runProcessBuilder = new ProcessBuilder("java", "-cp", ".", "Solution");
+            // 4. Run against Test Cases
+            // We use the first test case primarily as per MVP scope.
+            TestCase testCase = testCases.get(0);
+            String input = testCase.getInput(); 
+            
+            // Handle splitting input string into args safely
+            // For simple int/string inputs, split by whitespace works.
+            String[] inputArgs = input.split("\\s+"); 
+            
+            ProcessBuilder runProcessBuilder = new ProcessBuilder("java", "-cp", ".", "Main");
+            runProcessBuilder.command().addAll(java.util.Arrays.asList(inputArgs));
             runProcessBuilder.directory(directory);
+            
             Process runProcess = runProcessBuilder.start();
 
-            // Pass input
-            try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(runProcess.getOutputStream()))) {
-                writer.write(testCase.getInput());
-                writer.flush();
-            }
-
-            // Read output
-            boolean finished = runProcess.waitFor(5, TimeUnit.SECONDS);
+            boolean finished = runProcess.waitFor(2, TimeUnit.SECONDS); // 2s Time Limit
             if (!finished) {
                 runProcess.destroy();
                 return SubmissionResponse.builder().success(false).message("Time Limit Exceeded").build();
@@ -105,7 +111,7 @@ public class CodeExecutionService {
                     .build();
             }
 
-            // 4. Compare
+            // 5. Compare
             String expected = testCase.getExpectedOutput().trim();
             boolean passed = output.equals(expected);
 
@@ -126,7 +132,6 @@ public class CodeExecutionService {
                     .message("System Error: " + e.getMessage())
                     .build();
         } finally {
-            // Cleanup
             deleteDirectory(directory);
         }
     }
@@ -138,12 +143,12 @@ public class CodeExecutionService {
         com.code.codeR.model.UserProgress progress = userProgressRepository.findByUserId(user.getId())
                 .orElse(new com.code.codeR.model.UserProgress(null, user, 0, 0));
         
-        // Simple increment logic. In a real app, track *unique* problems solved.
         progress.setProblemsSolved(progress.getProblemsSolved() + 1);
         userProgressRepository.save(progress);
     }
 
     private void deleteDirectory(File directoryToBeDeleted) {
+        if (directoryToBeDeleted == null || !directoryToBeDeleted.exists()) return;
         File[] allContents = directoryToBeDeleted.listFiles();
         if (allContents != null) {
             for (File file : allContents) {

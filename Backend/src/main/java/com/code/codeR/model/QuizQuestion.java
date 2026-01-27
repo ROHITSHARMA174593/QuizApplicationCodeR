@@ -35,6 +35,10 @@ public class QuizQuestion {
     @Column(nullable = false)
     private String difficulty; // Easy, Medium, Hard
 
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "topic_id")
+    private Topic topic;
+
     @ManyToOne
     @JoinColumn(name = "category_id", nullable = false)
     private SkillCategory category;

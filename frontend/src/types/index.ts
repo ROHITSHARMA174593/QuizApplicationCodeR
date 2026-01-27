@@ -12,6 +12,13 @@ export interface SkillCategory {
   description: string;
 }
 
+export interface Topic {
+  id: number;
+  name: string;
+  description: string;
+  categoryId: number;
+}
+
 export interface QuizQuestion {
   id: number;
   questionText: string;
@@ -35,4 +42,7 @@ export interface CodingProblem {
   difficulty: string;
   category: SkillCategory;
   testCases?: TestCase[];
+  methodName: string;
+  returnType: string;
+  parameters: string; // JSON string
 }
