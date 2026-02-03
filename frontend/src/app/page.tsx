@@ -30,7 +30,7 @@ export default function Home() {
     <div className="min-h-screen flex flex-col items-center justify-center bg-background relative overflow-hidden">
       {/* Infinite Grid Animation */}
       <div className="absolute inset-0 z-0 opacity-20">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[length:24px_24px]"></div>
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-size-[24px_24px]"></div>
         <motion.div 
             animate={{ 
                 backgroundPosition: ["0% 0%", "100% 100%"]
@@ -65,7 +65,7 @@ export default function Home() {
         <motion.div variants={itemVariants} className="flex justify-center mb-8">
             <div className="relative">
                 <div className="absolute inset-0 bg-indigo-500 blur-xl opacity-50 animate-pulse"></div>
-                <div className="relative w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-indigo-500/40 border border-white/10">
+                <div className="relative w-20 h-20 bg-linear-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-indigo-500/40 border border-white/10">
                     <Code2 size={48} className="text-white drop-shadow-md" />
                 </div>
             </div>

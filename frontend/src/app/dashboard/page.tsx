@@ -120,7 +120,7 @@ export default function DashboardPage() {
       >
         <motion.div variants={item}>
           <Card className="border-blue-500/20 bg-blue-500/5 relative overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="absolute inset-0 bg-linear-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-blue-600 dark:text-blue-200">Total Score</CardTitle>
               <Trophy className="h-4 w-4 text-blue-500 dark:text-blue-400" />
@@ -134,7 +134,7 @@ export default function DashboardPage() {
 
         <motion.div variants={item}>
           <Card className="border-purple-500/20 bg-purple-500/5 relative overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="absolute inset-0 bg-linear-to-br from-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-purple-600 dark:text-purple-200">Quizzes Attempted</CardTitle>
               <Target className="h-4 w-4 text-purple-500 dark:text-purple-400" />
@@ -148,7 +148,7 @@ export default function DashboardPage() {
 
         <motion.div variants={item}>
           <Card className="border-emerald-500/20 bg-emerald-500/5 relative overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="absolute inset-0 bg-linear-to-br from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-emerald-600 dark:text-emerald-200">Problems Solved</CardTitle>
               <Code className="h-4 w-4 text-emerald-500 dark:text-emerald-400" />

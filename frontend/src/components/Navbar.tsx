@@ -45,7 +45,7 @@ export function Navbar() {
           {/* Logo Glow */}
           <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           
-          <div className="relative h-9 w-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-primary-foreground shadow-lg shadow-blue-500/20 group-hover:scale-110 transition-transform duration-300">
+          <div className="relative h-9 w-9 rounded-xl bg-linear-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-primary-foreground shadow-lg shadow-blue-500/20 group-hover:scale-110 transition-transform duration-300">
             <Code2 size={20} />
           </div>
           <span className="font-bold text-xl tracking-tight text-foreground group-hover:text-primary transition-colors">
