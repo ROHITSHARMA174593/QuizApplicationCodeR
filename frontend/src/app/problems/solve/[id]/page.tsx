@@ -105,16 +105,16 @@ class Solution {
 
   if (loading) {
     return (
-        <div className="flex justify-center items-center h-screen bg-black text-white">
-            <Loader2 className="animate-spin h-8 w-8 text-blue-500" />
+        <div className="flex justify-center items-center h-screen bg-background text-foreground">
+            <Loader2 className="animate-spin h-8 w-8 text-primary" />
         </div>
     );
   }
 
   if (!problem) {
     return (
-        <div className="flex flex-col justify-center items-center h-screen bg-black text-white gap-4">
-            <AlertCircle className="h-12 w-12 text-red-500" />
+        <div className="flex flex-col justify-center items-center h-screen bg-background text-foreground gap-4">
+            <AlertCircle className="h-12 w-12 text-destructive" />
             <h1 className="text-2xl font-bold">Problem not found</h1>
             <Link href="/problems">
                 <Button variant="outline">Back to Problems</Button>
@@ -124,50 +124,50 @@ class Solution {
   }
 
   return (
-    <div className="h-screen flex flex-col pt-16 bg-black text-white overflow-hidden">
+    <div className="h-screen flex flex-col pt-16 bg-background text-foreground overflow-hidden">
         <PanelGroup orientation="horizontal" className="flex-1">
              {/* Left Panel: Description */}
              <Panel defaultSize="40" minSize="20">
-                <div className="h-full flex flex-col border-r border-zinc-800 bg-[#0f0f10]">
+                <div className="h-full flex flex-col border-r border-border bg-card">
                     {/* Header */}
-                    <div className="p-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50">
-                        <Link href="/problems" className="text-zinc-500 hover:text-white flex items-center transition-colors">
+                    <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30">
+                        <Link href="/problems" className="text-muted-foreground hover:text-primary flex items-center transition-colors">
                             <ArrowLeft className="w-4 h-4 mr-2"/> Problems
                         </Link>
                     </div>
 
                     {/* Content */}
                     <div className="p-6 overflow-y-auto flex-1">
-                        <h1 className="text-2xl font-bold mb-3 text-zinc-100">{problem.title}</h1>
+                        <h1 className="text-2xl font-bold mb-3 text-foreground">{problem.title}</h1>
                         
                         <div className="flex gap-2 mb-6">
                              <span className={`px-2 py-0.5 rounded text-xs font-medium border
-                              ${problem.difficulty === 'Hard' ? 'bg-red-500/10 text-red-400 border-red-500/20' : 
-                                problem.difficulty === 'Medium' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' : 
-                                'bg-green-500/10 text-green-400 border-green-500/20'}`}>
+                              ${problem.difficulty === 'Hard' ? 'bg-red-500/10 text-red-600 border-red-500/20' : 
+                                problem.difficulty === 'Medium' ? 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20' : 
+                                'bg-green-500/10 text-green-600 border-green-500/20'}`}>
                               {problem.difficulty}
                             </span>
-                            <span className="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded text-xs font-medium">
+                            <span className="bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded text-xs font-medium">
                                 {problem.category?.name || "Algorithm"}
                             </span>
                         </div>
 
-                        <div className="prose prose-invert max-w-none text-zinc-300">
+                        <div className="prose prose-zinc dark:prose-invert max-w-none text-muted-foreground">
                             <p className="whitespace-pre-wrap leading-relaxed">{problem.description}</p>
                         </div>
                         
                         {/* Test Cases */}
                         {problem.testCases && problem.testCases.length > 0 && (
                             <div className="mt-8 space-y-4">
-                                <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Example Test Case</h3>
-                                <div className="bg-zinc-900/80 p-4 rounded-lg border border-zinc-800 font-mono text-sm space-y-2">
+                                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Example Test Case</h3>
+                                <div className="bg-muted/50 p-4 rounded-lg border border-border font-mono text-sm space-y-2">
                                     <div>
-                                        <span className="text-zinc-500 block text-xs mb-1">Input</span>
-                                        <div className="bg-black/50 p-2 rounded text-zinc-200">{problem.testCases[0].input}</div>
+                                        <span className="text-muted-foreground block text-xs mb-1">Input</span>
+                                        <div className="bg-background p-2 rounded text-foreground border border-border">{problem.testCases[0].input}</div>
                                     </div>
                                     <div>
-                                        <span className="text-zinc-500 block text-xs mb-1">Target Output</span>
-                                        <div className="bg-black/50 p-2 rounded text-zinc-200">{problem.testCases[0].expectedOutput}</div>
+                                        <span className="text-muted-foreground block text-xs mb-1">Target Output</span>
+                                        <div className="bg-background p-2 rounded text-foreground border border-border">{problem.testCases[0].expectedOutput}</div>
                                     </div>
                                 </div>
                             </div>
@@ -176,19 +176,19 @@ class Solution {
                 </div>
              </Panel>
              
-             <PanelResizeHandle className="w-1.5 bg-zinc-900 hover:bg-blue-500 transition-colors cursor-col-resize border-l border-r border-zinc-800" />
+             <PanelResizeHandle className="w-1.5 bg-border hover:bg-primary transition-colors cursor-col-resize" />
 
              {/* Right Panel: Workspace */}
              <Panel minSize="30">
                 <PanelGroup orientation="vertical">
                     {/* Top: Editor */}
                     <Panel defaultSize="60" minSize="30">
-                        <div className="h-full flex flex-col bg-[#1e1e1e] relative">
+                        <div className="h-full flex flex-col bg-card relative">
                             {/* Editor Toolbar */}
-                            <div className="h-12 flex items-center justify-between px-4 bg-zinc-900 border-b border-zinc-800">
+                            <div className="h-12 flex items-center justify-between px-4 bg-muted/30 border-b border-border">
                                 <div className="flex items-center gap-2">
                                     <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
-                                    <span className="text-sm text-zinc-400 font-medium">Java Solution</span>
+                                    <span className="text-sm text-muted-foreground font-medium">Java Solution</span>
                                 </div>
                                 <Button 
                                     size="sm" 
@@ -205,12 +205,12 @@ class Solution {
                             </div>
 
                             {/* Monaco Editor */}
-                            <div className="flex-1 overflow-hidden">
+                            <div className="flex-1 overflow-hidden border-b border-border">
                                 <Editor
                                     height="100%"
                                     defaultLanguage="java"
                                     value={code}
-                                    theme="vs-dark"
+                                    theme="vs"
                                     onChange={(value) => setCode(value || "")}
                                     options={{
                                         minimap: { enabled: false },
@@ -220,25 +220,26 @@ class Solution {
                                         scrollBeyondLastLine: false,
                                         readOnly: false,
                                         automaticLayout: true,
+                                        backgroundColor: 'transparent',
                                     }}
                                 />
                             </div>
                         </div>
                     </Panel>
 
-                    <PanelResizeHandle className="h-1.5 bg-zinc-900 hover:bg-blue-500 transition-colors cursor-row-resize border-t border-b border-zinc-800" />
+                    <PanelResizeHandle className="h-1.5 bg-border hover:bg-primary transition-colors cursor-row-resize" />
 
                     {/* Bottom: Output / Console */}
                     <Panel defaultSize="40" minSize="10">
-                         <div className="h-full bg-zinc-950 flex flex-col">
-                            <div className="px-4 py-2 border-b border-zinc-800 bg-zinc-900/50">
-                                <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Console / Output</h3>
+                         <div className="h-full bg-card flex flex-col">
+                            <div className="px-4 py-2 border-b border-border bg-muted/30">
+                                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Console / Output</h3>
                             </div>
                             
-                            <div className="flex-1 overflow-y-auto p-4">
+                            <div className="flex-1 overflow-y-auto p-4 bg-background/50">
                                 {!result && (
-                                    <div className="text-zinc-600 text-sm flex items-center gap-2">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-zinc-700"></div>
+                                    <div className="text-muted-foreground text-sm flex items-center gap-2">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50"></div>
                                         Run code to see output here
                                     </div>
                                 )}
@@ -251,7 +252,7 @@ class Solution {
                                             ) : (
                                                 <AlertCircle className="w-5 h-5 text-red-500" />
                                             )}
-                                            <span className={`font-medium ${result.status === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+                                            <span className={`font-medium ${result.status === 'success' ? 'text-green-600' : 'text-red-500'}`}>
                                                 {result.message}
                                             </span>
                                         </div>
@@ -259,16 +260,16 @@ class Solution {
                                         {(result.output || result.expectedOutput) && (
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div className="space-y-1">
-                                                    <span className="text-xs text-zinc-500 uppercase tracking-wider">Your Output</span>
+                                                    <span className="text-xs text-muted-foreground uppercase tracking-wider">Your Output</span>
                                                     <div className={`p-3 rounded-md font-mono text-sm border ${
-                                                        result.status === 'success' ? 'bg-zinc-900 border-green-500/20 text-green-300' : 'bg-zinc-900 border-red-500/20 text-red-300'
+                                                        result.status === 'success' ? 'bg-green-500/5 border-green-500/20 text-green-700' : 'bg-red-500/5 border-red-500/20 text-red-700'
                                                     }`}>
                                                         {result.output || "No output"}
                                                     </div>
                                                 </div>
                                                 <div className="space-y-1">
-                                                    <span className="text-xs text-zinc-500 uppercase tracking-wider">Expected Output</span>
-                                                    <div className="p-3 rounded-md font-mono text-sm bg-zinc-900 border border-zinc-800 text-zinc-300">
+                                                    <span className="text-xs text-muted-foreground uppercase tracking-wider">Expected Output</span>
+                                                    <div className="p-3 rounded-md font-mono text-sm bg-muted/30 border border-border text-foreground">
                                                         {result.expectedOutput || "-"}
                                                     </div>
                                                 </div>

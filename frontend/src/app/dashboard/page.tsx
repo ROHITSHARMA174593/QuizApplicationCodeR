@@ -104,10 +104,10 @@ export default function DashboardPage() {
         className="flex flex-col md:flex-row md:items-center justify-between gap-4"
       >
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white">
-            Welcome back, <span className="text-blue-500 capitalize">{userEmail.split('@')[0]}</span>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            Welcome back, <span className="text-primary capitalize">{userEmail.split('@')[0]}</span>
           </h1>
-          <p className="text-zinc-400 mt-1">Ready to solve some problems today?</p>
+          <p className="text-muted-foreground mt-1">Ready to solve some problems today?</p>
         </div>
       </motion.div>
 
@@ -120,42 +120,42 @@ export default function DashboardPage() {
       >
         <motion.div variants={item}>
           <Card className="border-blue-500/20 bg-blue-500/5 relative overflow-hidden group">
-            <div className="absolute inset-0 bg-linear-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-blue-200">Total Score</CardTitle>
-              <Trophy className="h-4 w-4 text-blue-400" />
+              <CardTitle className="text-sm font-medium text-blue-600 dark:text-blue-200">Total Score</CardTitle>
+              <Trophy className="h-4 w-4 text-blue-500 dark:text-blue-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-blue-100">{progress?.totalScore || 0}</div>
-              <p className="text-xs text-blue-300 mt-1">Experience Points</p>
+              <div className="text-3xl font-bold text-blue-700 dark:text-blue-100">{progress?.totalScore || 0}</div>
+              <p className="text-xs text-blue-600/80 dark:text-blue-300 mt-1">Experience Points</p>
             </CardContent>
           </Card>
         </motion.div>
 
         <motion.div variants={item}>
           <Card className="border-purple-500/20 bg-purple-500/5 relative overflow-hidden group">
-            <div className="absolute inset-0 bg-linear-to-br from-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-purple-200">Quizzes Attempted</CardTitle>
-              <Target className="h-4 w-4 text-purple-400" />
+              <CardTitle className="text-sm font-medium text-purple-600 dark:text-purple-200">Quizzes Attempted</CardTitle>
+              <Target className="h-4 w-4 text-purple-500 dark:text-purple-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-purple-100">{progress?.quizzesAttempted || 0}</div>
-              <p className="text-xs text-purple-300 mt-1">Tests completed</p>
+              <div className="text-3xl font-bold text-purple-700 dark:text-purple-100">{progress?.quizzesAttempted || 0}</div>
+              <p className="text-xs text-purple-600/80 dark:text-purple-300 mt-1">Tests completed</p>
             </CardContent>
           </Card>
         </motion.div>
 
         <motion.div variants={item}>
           <Card className="border-emerald-500/20 bg-emerald-500/5 relative overflow-hidden group">
-            <div className="absolute inset-0 bg-linear-to-br from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-emerald-200">Problems Solved</CardTitle>
-              <Code className="h-4 w-4 text-emerald-400" />
+              <CardTitle className="text-sm font-medium text-emerald-600 dark:text-emerald-200">Problems Solved</CardTitle>
+              <Code className="h-4 w-4 text-emerald-500 dark:text-emerald-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-emerald-100">{progress?.problemsSolved || 0}</div>
-              <p className="text-xs text-emerald-300 mt-1">Challenges conquered</p>
+              <div className="text-3xl font-bold text-emerald-700 dark:text-emerald-100">{progress?.problemsSolved || 0}</div>
+              <p className="text-xs text-emerald-600/80 dark:text-emerald-300 mt-1">Challenges conquered</p>
             </CardContent>
           </Card>
         </motion.div>
@@ -163,13 +163,13 @@ export default function DashboardPage() {
 
       {/* Skills Section */}
       <div className="space-y-4">
-        <h2 className="text-xl font-semibold flex items-center gap-2">
+        <h2 className="text-xl font-semibold flex items-center gap-2 text-foreground">
           <Sparkles className="h-5 w-5 text-yellow-500" />
           Skill Paths
         </h2>
         
         {categories.length === 0 ? (
-          <div className="text-center py-12 text-zinc-500">
+          <div className="text-center py-12 text-muted-foreground">
             No categories available yet. Please check back later!
           </div>
         ) : (
@@ -185,17 +185,17 @@ export default function DashboardPage() {
               
               return (
                 <motion.div key={category.id} variants={item}>
-                  <Card className="h-full hover:border-zinc-600 transition-colors group relative overflow-hidden">
+                  <Card className="h-full hover:border-primary/50 transition-colors group relative overflow-hidden glass-card">
                     <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-20 transition-opacity">
                       <Icon size={100} />
                     </div>
                     
                     <CardHeader>
-                      <div className="h-10 w-10 rounded-lg bg-zinc-800 flex items-center justify-center mb-2 group-hover:bg-blue-600/20 group-hover:text-blue-400 transition-colors">
-                        <Icon size={20} />
+                      <div className="h-10 w-10 rounded-lg bg-secondary flex items-center justify-center mb-2 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                        <Icon size={20} className="text-foreground group-hover:text-primary" />
                       </div>
-                      <CardTitle>{category.name}</CardTitle>
-                      <CardDescription>
+                      <CardTitle className="text-foreground">{category.name}</CardTitle>
+                      <CardDescription className="text-muted-foreground">
                         {isDSA ? "Master Data Structures & Algorithms" : `Test your ${category.name} knowledge`}
                       </CardDescription>
                     </CardHeader>
@@ -203,13 +203,13 @@ export default function DashboardPage() {
                     <CardFooter className="flex gap-3">
                       {isDSA ? (
                         <Link href={`/problems/${category.id}`} className="w-full">
-                          <Button variant="outline" className="w-full text-xs hover:bg-emerald-900/30 hover:text-emerald-300 hover:border-emerald-500/50">
+                          <Button variant="outline" className="w-full text-xs hover:bg-emerald-500/10 hover:text-emerald-600 hover:border-emerald-500/50">
                             Solve Problems
                           </Button>
                         </Link>
                       ) : (
                         <Link href={`/quiz/${category.id}`} className="w-full">
-                          <Button variant="outline" className="w-full text-xs hover:bg-purple-900/30 hover:text-purple-300 hover:border-purple-500/50">
+                          <Button variant="outline" className="w-full text-xs hover:bg-purple-500/10 hover:text-purple-600 hover:border-purple-500/50">
                             Take Quiz
                           </Button>
                         </Link>

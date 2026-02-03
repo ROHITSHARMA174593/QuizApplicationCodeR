@@ -51,7 +51,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-grid-white/[0.02] relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-background relative overflow-hidden">
         {/* Background blobs */}
         <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-blob" />
         <div className="absolute top-0 right-0 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-blob animation-delay-2000" />
@@ -62,13 +62,13 @@ export default function RegisterPage() {
         transition={{ duration: 0.5 }}
         className="w-full max-w-md relative z-10"
       >
-        <Card className="border-zinc-800 bg-black/60 backdrop-blur-xl">
+        <Card className="glass-card shadow-2xl">
           <CardHeader className="text-center space-y-2">
-            <div className="mx-auto h-12 w-12 rounded-xl bg-blue-600 flex items-center justify-center text-white mb-4 shadow-lg shadow-blue-900/20">
+            <div className="mx-auto h-12 w-12 rounded-xl bg-primary flex items-center justify-center text-primary-foreground mb-4 shadow-lg shadow-blue-900/20">
               <Code2 size={24} />
             </div>
-            <CardTitle className="text-3xl font-bold tracking-tight">Create an account</CardTitle>
-            <CardDescription className="text-zinc-400 text-base">
+            <CardTitle className="text-3xl font-bold tracking-tight text-foreground">Create an account</CardTitle>
+            <CardDescription className="text-muted-foreground text-base">
               Join CodeR to master your programming skills
             </CardDescription>
           </CardHeader>
@@ -76,11 +76,11 @@ export default function RegisterPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <div className="relative">
-                  <User className="absolute left-3 top-3 h-5 w-5 text-zinc-500" />
+                  <User className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
                   <Input
                     type="text"
                     placeholder="Full Name"
-                    className="pl-10 h-12 bg-zinc-900/50 border-zinc-800 focus:border-blue-500/50"
+                    className="pl-10 h-12 bg-background/50 border-input focus:border-primary/50"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     required
@@ -89,11 +89,11 @@ export default function RegisterPage() {
               </div>
               <div className="space-y-2">
                 <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-5 w-5 text-zinc-500" />
+                  <Mail className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
                   <Input
                     type="email"
                     placeholder="name@example.com"
-                    className="pl-10 h-12 bg-zinc-900/50 border-zinc-800 focus:border-blue-500/50"
+                    className="pl-10 h-12 bg-background/50 border-input focus:border-primary/50"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     required
@@ -102,11 +102,11 @@ export default function RegisterPage() {
               </div>
               <div className="space-y-2">
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-5 w-5 text-zinc-500" />
+                  <Lock className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
                   <Input
                     type="password"
                     placeholder="Create a password"
-                    className="pl-10 h-12 bg-zinc-900/50 border-zinc-800 focus:border-blue-500/50"
+                    className="pl-10 h-12 bg-background/50 border-input focus:border-primary/50"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     required
@@ -115,7 +115,7 @@ export default function RegisterPage() {
               </div>
               
               {error && (
-                <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-sm">
+                <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
                   {error}
                 </div>
               )}
@@ -127,14 +127,14 @@ export default function RegisterPage() {
               
               <div className="relative my-4">
                 <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-zinc-800" />
+                  <span className="w-full border-t border-border" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-black px-2 text-zinc-500">Or continue with</span>
+                  <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
                 </div>
               </div>
 
-              <Button type="button" variant="outline" className="w-full h-12 bg-white text-black hover:bg-zinc-200 border-0 flex flex-row items-center justify-center gap-3">
+              <Button type="button" variant="outline" className="w-full h-12 bg-secondary text-secondary-foreground hover:bg-secondary/80 border-0 flex flex-row items-center justify-center gap-3">
                  <svg className="h-5 w-5" viewBox="0 0 24 24">
                   <path
                     d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -156,9 +156,9 @@ export default function RegisterPage() {
                 Continue with Google
               </Button>
 
-              <div className="text-center text-sm text-zinc-400 mt-4">
+              <div className="text-center text-sm text-muted-foreground mt-4">
                 Already have an account?{" "}
-                <Link href="/login" className="text-blue-400 hover:text-blue-300 font-medium hover:underline underline-offset-4">
+                <Link href="/login" className="text-primary hover:text-primary/90 font-medium hover:underline underline-offset-4">
                   Log in
                 </Link>
               </div>

@@ -276,8 +276,8 @@ export default function AdminDashboard() {
     <div className="container mx-auto p-6 pt-24 max-w-7xl space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">Admin Dashboard</h1>
-          <p className="text-zinc-400">Manage users and system content</p>
+          <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
+          <p className="text-muted-foreground">Manage users and system content</p>
         </div>
         <div className="flex gap-4">
           <Button
@@ -359,40 +359,40 @@ export default function AdminDashboard() {
       </div>
 
       {activeTab === "users" && (
-         <Card className="border-zinc-800 bg-zinc-900/50">
+        <Card className="glass-card">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>User Management</CardTitle>
               <div className="relative w-64">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
-                <Input placeholder="Search users..." className="pl-9 h-10" />
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input placeholder="Search users..." className="pl-9 h-10 bg-background/50 border-input" />
               </div>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="rounded-md border border-zinc-800">
+            <div className="rounded-md border border-border">
               <table className="w-full text-sm text-left">
-                <thead className="text-zinc-400 bg-zinc-900/50 uppercase text-xs">
+                <thead className="text-muted-foreground bg-muted/50 uppercase text-xs">
                   <tr>
                     <th className="px-4 py-3">ID</th>
                     <th className="px-4 py-3">User</th>
                     <th className="px-4 py-3">Role</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-800">
+                <tbody className="divide-y divide-border">
                   {users.map((user) => (
                     <tr
                       key={user.id}
-                      className="hover:bg-zinc-900/50 transition-colors"
+                      className="hover:bg-muted/50 transition-colors"
                     >
-                      <td className="px-4 py-3 font-mono text-zinc-500">
+                      <td className="px-4 py-3 font-mono text-muted-foreground">
                         #{user.id}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="font-medium text-zinc-200">
+                        <div className="font-medium text-foreground">
                           {user.name}
                         </div>
-                        <div className="text-zinc-500 text-xs">
+                        <div className="text-muted-foreground text-xs">
                           {user.email}
                         </div>
                       </td>
@@ -400,8 +400,8 @@ export default function AdminDashboard() {
                         <span
                           className={`px-2 py-0.5 rounded text-xs border ${
                             user.role === "ADMIN"
-                              ? "bg-purple-500/10 text-purple-400 border-purple-500/20"
-                              : "bg-zinc-800 text-zinc-400 border-zinc-700"
+                              ? "bg-purple-500/10 text-purple-600 border-purple-500/20"
+                              : "bg-secondary text-muted-foreground border-border"
                           }`}
                         >
                           {user.role}
@@ -417,18 +417,18 @@ export default function AdminDashboard() {
       )}
 
       {activeTab === "categories" && (
-        <Card className="border-zinc-800 bg-zinc-900/50">
+        <Card className="glass-card">
           <CardHeader>
             <div className="flex justify-between items-center">
               <CardTitle>Manage Categories</CardTitle>
-              <div className="text-sm text-zinc-400">
+              <div className="text-sm text-muted-foreground">
                 Total: {categories.length}
               </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-8">
             <div className="space-y-4 max-w-xl">
-              <h3 className="text-lg font-medium text-white">
+              <h3 className="text-lg font-medium text-foreground">
                 Add New Category
               </h3>
               <div className="flex gap-4">
@@ -438,6 +438,7 @@ export default function AdminDashboard() {
                   onChange={(e) =>
                     setCategoryData({ ...categoryData, name: e.target.value })
                   }
+                  className="bg-background/50 border-input"
                 />
                 <Input
                   placeholder="Description"
@@ -448,22 +449,23 @@ export default function AdminDashboard() {
                       description: e.target.value,
                     })
                   }
+                  className="bg-background/50 border-input"
                 />
                 <Button onClick={handleCreateCategory}>Add</Button>
               </div>
             </div>
             <div className="space-y-4">
-              <h3 className="text-lg font-medium text-white">
+              <h3 className="text-lg font-medium text-foreground">
                 Existing Categories
               </h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {categories.map((cat) => (
                   <div
                     key={cat.id}
-                    className="p-4 rounded-lg bg-zinc-800 border border-zinc-700"
+                    className="p-4 rounded-lg bg-card border border-border shadow-sm"
                   >
-                    <div className="font-bold text-white">{cat.name}</div>
-                    <div className="text-xs text-zinc-400 truncate">
+                    <div className="font-bold text-foreground">{cat.name}</div>
+                    <div className="text-xs text-muted-foreground truncate">
                       {cat.description}
                     </div>
                   </div>
@@ -475,18 +477,18 @@ export default function AdminDashboard() {
       )}
 
       {activeTab === "topics" && (
-        <Card className="border-zinc-800 bg-zinc-900/50">
+        <Card className="glass-card">
           <CardHeader>
             <CardTitle>Manage Topics</CardTitle>
           </CardHeader>
           <CardContent className="space-y-8">
             <div className="space-y-4 max-w-xl">
-              <h3 className="text-lg font-medium text-white">
+              <h3 className="text-lg font-medium text-foreground">
                 Add New Topic
               </h3>
               <form onSubmit={handleCreateTopic} className="space-y-4">
                 <select
-                  className="flex h-10 w-full rounded-md border border-zinc-800 bg-zinc-900/50 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                  className="flex h-10 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                   value={topicData.categoryId}
                   onChange={(e) => setTopicData({...topicData, categoryId: e.target.value})}
                   required
@@ -524,7 +526,7 @@ export default function AdminDashboard() {
       )}
 
       {activeTab === "quiz" && (
-        <Card className="border-zinc-800 bg-zinc-900/50">
+        <Card className="glass-card">
           <CardHeader>
             <CardTitle>Add New Quiz Question</CardTitle>
           </CardHeader>
@@ -534,11 +536,11 @@ export default function AdminDashboard() {
               className="space-y-4 max-w-2xl"
             >
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">
+                <label className="text-sm font-medium text-muted-foreground">
                   Select Category
                 </label>
                 <select
-                  className="flex h-10 w-full rounded-md border border-zinc-800 bg-zinc-900/50 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                  className="flex h-10 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
                   required
@@ -558,7 +560,7 @@ export default function AdminDashboard() {
                     Select Topic
                     </label>
                     <select
-                    className="flex h-10 w-full rounded-md border border-zinc-800 bg-zinc-900/50 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                    className="flex h-10 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                     value={selectedTopic}
                     onChange={(e) => setSelectedTopic(e.target.value)}
                     required
@@ -644,7 +646,7 @@ export default function AdminDashboard() {
                     Correct Option
                   </label>
                   <select
-                    className="flex h-10 w-full rounded-md border border-zinc-800 bg-zinc-900/50 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                    className="flex h-10 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                     value={questionData.correctAnswer}
                     onChange={(e) =>
                       setQuestionData({
@@ -666,7 +668,7 @@ export default function AdminDashboard() {
                     Difficulty
                   </label>
                   <select
-                    className="flex h-10 w-full rounded-md border border-zinc-800 bg-zinc-900/50 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                    className="flex h-10 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                     value={questionData.difficulty}
                     onChange={(e) =>
                       setQuestionData({
@@ -691,7 +693,7 @@ export default function AdminDashboard() {
       )}
 
       {activeTab === "problems" && (
-        <Card className="border-zinc-800 bg-zinc-900/50">
+        <Card className="glass-card">
           <CardHeader>
             <CardTitle>Add New Coding Problem</CardTitle>
           </CardHeader>
@@ -699,11 +701,11 @@ export default function AdminDashboard() {
             <form onSubmit={handleAddProblem} className="space-y-6 max-w-4xl">
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-zinc-400">
+                  <label className="text-sm font-medium text-muted-foreground">
                     Select Category
                   </label>
                   <select
-                    className="flex h-10 w-full rounded-md border border-zinc-800 bg-zinc-900/50 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                    className="flex h-10 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                     value={selectedCategory}
                     onChange={(e) => setSelectedCategory(e.target.value)}
                     required
@@ -719,11 +721,11 @@ export default function AdminDashboard() {
 
                 {selectedCategory && (
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-zinc-400">
+                        <label className="text-sm font-medium text-muted-foreground">
                         Select Topic
                         </label>
                         <select
-                        className="flex h-10 w-full rounded-md border border-zinc-800 bg-zinc-900/50 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        className="flex h-10 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                         value={selectedTopic}
                         onChange={(e) => setSelectedTopic(e.target.value)}
                         required
@@ -739,12 +741,12 @@ export default function AdminDashboard() {
                 )}
                 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-zinc-400">
+                  <label className="text-sm font-medium text-muted-foreground">
                     Difficulty
                   </label>
                    {/* Difficulty Select */}
                   <select
-                    className="flex h-10 w-full rounded-md border border-zinc-800 bg-zinc-900/50 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                    className="flex h-10 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                     value={problemData.difficulty}
                     onChange={(e) =>
                       setProblemData({
@@ -762,7 +764,7 @@ export default function AdminDashboard() {
 
                {/* Title and Description */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">
+                <label className="text-sm font-medium text-muted-foreground">
                   Problem Title
                 </label>
                 <Input
@@ -776,11 +778,11 @@ export default function AdminDashboard() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">
+                <label className="text-sm font-medium text-muted-foreground">
                   Description
                 </label>
                 <textarea
-                  className="flex min-h-[120px] w-full rounded-md border border-zinc-800 bg-zinc-900/50 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                  className="flex min-h-[120px] w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                   placeholder="Describe the problem statement, input/output format..."
                   value={problemData.description}
                   onChange={(e) =>
@@ -794,22 +796,23 @@ export default function AdminDashboard() {
               </div>
 
               {/* Function Signature Builder */}
-              <div className="space-y-4 border-t border-zinc-800 pt-4">
-                 <h3 className="text-lg font-medium text-zinc-200">Function Signature</h3>
+              <div className="space-y-4 border-t border-border pt-4">
+                 <h3 className="text-lg font-medium text-foreground">Function Signature</h3>
                  
                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-zinc-400">Method Name</label>
+                        <label className="text-sm font-medium text-muted-foreground">Method Name</label>
                         <Input 
                             placeholder="e.g. twoSum"
                             value={problemData.methodName}
                             onChange={(e) => setProblemData({...problemData, methodName: e.target.value})}
+                            className="bg-background/50 border-input"
                         />
                     </div>
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-zinc-400">Return Type</label>
+                        <label className="text-sm font-medium text-muted-foreground">Return Type</label>
                         <select 
-                            className="flex h-10 w-full rounded-md border border-zinc-800 bg-zinc-900/50 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                            className="flex h-10 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                             value={problemData.returnType}
                             onChange={(e) => setProblemData({...problemData, returnType: e.target.value})}
                         >
@@ -823,10 +826,10 @@ export default function AdminDashboard() {
                  </div>
 
                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-400">Parameters</label>
+                    <label className="text-sm font-medium text-muted-foreground">Parameters</label>
                     <div className="flex gap-2">
                         <select 
-                            className="w-1/3 rounded-md border border-zinc-800 bg-zinc-900/50 px-3 py-2 text-sm text-white focus:outline-none"
+                            className="w-1/3 rounded-md border border-input bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                             value={newParam.type}
                             onChange={(e) => setNewParam({...newParam, type: e.target.value})}
                         >
@@ -839,6 +842,7 @@ export default function AdminDashboard() {
                             placeholder="Parameter Name (e.g. nums)"
                             value={newParam.name}
                             onChange={(e) => setNewParam({...newParam, name: e.target.value})}
+                            className="bg-background/50 border-input"
                         />
                         <Button type="button" onClick={handleAddParameter} variant="secondary">Add</Button>
                     </div>
@@ -846,9 +850,9 @@ export default function AdminDashboard() {
                     {/* Params List */}
                     <div className="flex flex-wrap gap-2 mt-2">
                         {parameters.map((p, i) => (
-                            <div key={i} className="flex items-center gap-2 bg-zinc-800 px-3 py-1 rounded-full text-sm text-zinc-300">
+                            <div key={i} className="flex items-center gap-2 bg-secondary px-3 py-1 rounded-full text-sm text-secondary-foreground">
                                 <span>{p.type} {p.name}</span>
-                                <button type="button" onClick={() => handleRemoveParameter(i)} className="text-zinc-500 hover:text-red-400">×</button>
+                                <button type="button" onClick={() => handleRemoveParameter(i)} className="text-muted-foreground hover:text-destructive">×</button>
                             </div>
                         ))}
                     </div>
@@ -856,8 +860,8 @@ export default function AdminDashboard() {
 
                  {/* Boilerplate Preview */}
                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-400">Preview User Code</label>
-                    <pre className="bg-black/50 p-4 rounded-md border border-zinc-800 font-mono text-sm text-blue-300 overflow-x-auto">
+                    <label className="text-sm font-medium text-muted-foreground">Preview User Code</label>
+                    <pre className="bg-muted p-4 rounded-md border border-border font-mono text-sm text-primary overflow-x-auto">
                         {generatedBoilerplate}
                     </pre>
                  </div>
@@ -883,12 +887,12 @@ export default function AdminDashboard() {
                   {problemData.testCases.map((tc, index) => (
                     <div
                       key={index}
-                      className="grid grid-cols-12 gap-4 items-start bg-zinc-900/30 p-4 rounded-lg border border-zinc-800/50"
+                      className="grid grid-cols-12 gap-4 items-start bg-muted/30 p-4 rounded-lg border border-border/50"
                     >
                       <div className="col-span-5 space-y-2">
-                        <label className="text-xs text-zinc-500">Input</label>
+                        <label className="text-xs text-muted-foreground">Input</label>
                         <textarea
-                          className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-sm font-mono text-zinc-300 focus:outline-none focus:border-blue-500/50"
+                          className="w-full bg-background border border-input rounded p-2 text-sm font-mono text-foreground focus:outline-none focus:border-primary/50"
                           rows={2}
                           value={tc.input}
                           onChange={(e) =>
@@ -899,11 +903,11 @@ export default function AdminDashboard() {
                         />
                       </div>
                       <div className="col-span-5 space-y-2">
-                        <label className="text-xs text-zinc-500">
+                        <label className="text-xs text-muted-foreground">
                           Expected Output
                         </label>
                         <textarea
-                          className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-sm font-mono text-zinc-300 focus:outline-none focus:border-blue-500/50"
+                          className="w-full bg-background border border-input rounded p-2 text-sm font-mono text-foreground focus:outline-none focus:border-primary/50"
                           rows={2}
                           value={tc.expectedOutput}
                           onChange={(e) =>
@@ -928,11 +932,11 @@ export default function AdminDashboard() {
                                 e.target.checked
                               )
                             }
-                            className="rounded bg-zinc-800 border-zinc-700"
+                            className="rounded bg-secondary border-border"
                           />
                           <label
                             htmlFor={`hidden-${index}`}
-                            className="text-xs text-zinc-500 cursor-pointer"
+                            className="text-xs text-muted-foreground cursor-pointer"
                           >
                             Hidden Case
                           </label>
@@ -945,7 +949,7 @@ export default function AdminDashboard() {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleRemoveTestCase(index)}
-                            className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
                           >
                             <Trash2 size={18} />
                           </Button>

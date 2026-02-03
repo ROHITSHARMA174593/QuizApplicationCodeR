@@ -112,7 +112,7 @@ export default function TopicQuizPage({ params }: { params: Promise<{ categoryId
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -120,7 +120,7 @@ export default function TopicQuizPage({ params }: { params: Promise<{ categoryId
   if (questions.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-        <h2 className="text-xl font-semibold text-zinc-300">No questions found for this topic.</h2>
+        <h2 className="text-xl font-semibold text-muted-foreground">No questions found for this topic.</h2>
         <Button onClick={() => router.back()} variant="outline">Go Back</Button>
       </div>
     );
@@ -134,22 +134,22 @@ export default function TopicQuizPage({ params }: { params: Promise<{ categoryId
           animate={{ scale: 1, opacity: 1 }}
           className="w-full"
         >
-          <Card className="border-zinc-800 bg-zinc-900/50 backdrop-blur-xl">
+          <Card className="glass-card backdrop-blur-xl">
             <CardHeader className="text-center">
               <div className="mx-auto bg-yellow-500/10 p-4 rounded-full mb-4">
                 <Trophy size={48} className="text-yellow-500" />
               </div>
-              <CardTitle className="text-3xl font-bold">Quiz Completed!</CardTitle>
-              <CardDescription>You scored {score} points</CardDescription>
+              <CardTitle className="text-3xl font-bold text-foreground">Quiz Completed!</CardTitle>
+              <CardDescription className="text-muted-foreground">You scored {score} points</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 text-center">
-              <div className="p-4 bg-zinc-800/50 rounded-xl">
-                <p className="text-zinc-400">Total Questions</p>
-                <p className="text-2xl font-bold text-white">{questions.length}</p>
+              <div className="p-4 bg-muted/50 rounded-xl">
+                <p className="text-muted-foreground">Total Questions</p>
+                <p className="text-2xl font-bold text-foreground">{questions.length}</p>
               </div>
-              <div className="p-4 bg-zinc-800/50 rounded-xl">
-                <p className="text-zinc-400">Accuracy</p>
-                <p className="text-2xl font-bold text-white">
+              <div className="p-4 bg-muted/50 rounded-xl">
+                <p className="text-muted-foreground">Accuracy</p>
+                <p className="text-2xl font-bold text-foreground">
                   {Math.round((score / (questions.length * 10)) * 100)}%
                 </p>
               </div>
@@ -172,7 +172,7 @@ export default function TopicQuizPage({ params }: { params: Promise<{ categoryId
 
   return (
     <div className="container mx-auto max-w-3xl p-4 pt-24 py-8">
-      <div className="mb-8 flex justify-between items-center text-zinc-400">
+      <div className="mb-8 flex justify-between items-center text-muted-foreground">
         <span>Question {currentQuestionIndex + 1} of {questions.length}</span>
         <span>Score: {score}</span>
       </div>
@@ -186,7 +186,7 @@ export default function TopicQuizPage({ params }: { params: Promise<{ categoryId
           transition={{ duration: 0.2 }}
         >
           <Card className="border-0 bg-transparent shadow-none">
-            <h2 className="text-2xl font-bold mb-6 leading-relaxed text-white">
+            <h2 className="text-2xl font-bold mb-6 leading-relaxed text-foreground">
               {currentQuestion.questionText}
             </h2>
 
@@ -195,15 +195,15 @@ export default function TopicQuizPage({ params }: { params: Promise<{ categoryId
                 const isSelected = selectedOption === option;
                 const isCorrect = option === currentQuestion.correctAnswer;
                 
-                let buttonStyle = "bg-zinc-900 border-zinc-800 hover:bg-zinc-800"; 
+                let buttonStyle = "bg-card border-border hover:bg-muted"; 
                 
                 if (isAnswered) {
-                  if (isSelected && isCorrect) buttonStyle = "bg-green-500/20 border-green-500 text-green-200";
-                  else if (isSelected && !isCorrect) buttonStyle = "bg-red-500/20 border-red-500 text-red-200";
-                  else if (isCorrect) buttonStyle = "bg-green-500/20 border-green-500 text-green-200";
-                  else buttonStyle = "bg-zinc-900 border-zinc-800 opacity-50";
+                  if (isSelected && isCorrect) buttonStyle = "bg-green-500/20 border-green-500 text-green-700";
+                  else if (isSelected && !isCorrect) buttonStyle = "bg-red-500/20 border-red-500 text-red-700";
+                  else if (isCorrect) buttonStyle = "bg-green-500/20 border-green-500 text-green-700";
+                  else buttonStyle = "bg-card border-border opacity-50";
                 } else if (isSelected) {
-                  buttonStyle = "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/20";
+                  buttonStyle = "bg-primary border-primary text-primary-foreground shadow-lg shadow-primary/20";
                 }
 
                 return (
