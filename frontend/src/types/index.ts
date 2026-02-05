@@ -39,10 +39,13 @@ export interface CodingProblem {
   id: number;
   title: string;
   description: string;
-  difficulty: string;
+  difficulty: "Easy" | "Medium" | "Hard";
   category: SkillCategory;
-  testCases?: TestCase[];
-  methodName: string;
-  returnType: string;
-  parameters: string; // JSON string
+  topic?: Topic;
+  testCases: TestCase[];
+  methodName?: string;
+  returnType?: string;
+  parameters?: string; // JSON string
+  visibleInput?: string;
+  visibleOutput?: string;
 }

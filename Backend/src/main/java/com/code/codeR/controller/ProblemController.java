@@ -1,11 +1,14 @@
 package com.code.codeR.controller;
 
+import com.code.codeR.dto.SubmissionRequest;
+import com.code.codeR.dto.SubmissionResponse;
 import com.code.codeR.model.CodingProblem;
 import com.code.codeR.service.ProblemService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.List;
 
 @RestController
@@ -27,13 +30,16 @@ public class ProblemController {
         return ResponseEntity.ok(problemService.getProblemById(id));
     }
 
-    @PostMapping("/solve")
-    public ResponseEntity<com.code.codeR.dto.SubmissionResponse> solveProblem(
-            @RequestBody com.code.codeR.dto.SubmissionRequest request,
-            java.security.Principal principal
-    ) {
+    @PostMapping("/{id}/submit")
+    public ResponseEntity<SubmissionResponse> submitProblem(@PathVariable Long id, @RequestBody SubmissionRequest request, Principal principal) {
         String email = (principal != null) ? principal.getName() : null;
-        return ResponseEntity.ok(codeExecutionService.executeJavaCode(request.getProblemId(), request.getCode(), email));
+        return ResponseEntity.ok(codeExecutionService.submitCode(id, request.getCode(), email));
+    }
+
+    @PostMapping("/{id}/run")
+    public ResponseEntity<SubmissionResponse> runProblem(@PathVariable Long id, @RequestBody SubmissionRequest request, Principal principal) {
+        String email = (principal != null) ? principal.getName() : null;
+        return ResponseEntity.ok(codeExecutionService.runVisibleTest(id, request.getCode(), email));
     }
 
     @GetMapping("/category/{categoryId}")
@@ -49,5 +55,16 @@ public class ProblemController {
     @GetMapping("/topic/{topicId}")
     public ResponseEntity<List<CodingProblem>> getProblemsByTopic(@PathVariable Long topicId) {
         return ResponseEntity.ok(problemService.getProblemsByTopic(topicId));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<CodingProblem> updateProblem(@PathVariable Long id, @RequestBody CodingProblem problem) {
+        return ResponseEntity.ok(problemService.updateProblem(id, problem));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteProblem(@PathVariable Long id) {
+        problemService.deleteProblem(id);
+        return ResponseEntity.noContent().build();
     }
 }

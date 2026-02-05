@@ -22,24 +22,36 @@ public class CodeExecutionService {
     private final com.code.codeR.repository.UserProgressRepository userProgressRepository;
     private final CodeSecurityValidator securityValidator;
     private final MainMethodGenerator mainMethodGenerator;
+    private final S3Service s3Service;
 
-    public SubmissionResponse executeJavaCode(Long problemId, String userCode, String userEmail) {
+    public SubmissionResponse runVisibleTest(Long problemId, String userCode, String userEmail) {
         CodingProblem problem = problemService.getProblemById(problemId);
-        List<TestCase> testCases = problem.getTestCases();
 
-        if (testCases.isEmpty()) {
-            return SubmissionResponse.builder().success(false).message("No test cases found for this problem.").build();
-        }
-
-        // 1. Security Check
         try {
             securityValidator.validate(userCode);
         } catch (SecurityException e) {
             return SubmissionResponse.builder().success(false).message(e.getMessage()).build();
         }
 
+        return executeInternally(problem, userCode, userEmail, true);
+    }
+
+    public SubmissionResponse submitCode(Long problemId, String userCode, String userEmail) {
+        CodingProblem problem = problemService.getProblemById(problemId);
+        
+        try {
+            securityValidator.validate(userCode);
+        } catch (SecurityException e) {
+            return SubmissionResponse.builder().success(false).message(e.getMessage()).build();
+        }
+
+        return executeInternally(problem, userCode, userEmail, false);
+    }
+
+    private SubmissionResponse executeInternally(CodingProblem problem, String userCode, String userEmail, boolean visibleOnly) {
         String tempDir = System.getProperty("java.io.tmpdir") + File.separator + "codeR_" + UUID.randomUUID();
         File directory = new File(tempDir);
+        
         if (!directory.mkdirs()) {
              return SubmissionResponse.builder().success(false).message("Internal Server Error: Could not create temp dir").build();
         }
@@ -68,62 +80,76 @@ public class CodeExecutionService {
                  return SubmissionResponse.builder()
                     .success(false)
                     .message("Compilation Failed")
-                    .output(error.replace(tempDir, "")) // Hide path
+                    .output(error.replace(tempDir, "")) 
                     .build();
             }
 
             // 4. Run against Test Cases
-            // We use the first test case primarily as per MVP scope.
-            TestCase testCase = testCases.get(0);
-            String input = testCase.getInput(); 
-            
-            // Handle splitting input string into args safely
-            // For simple int/string inputs, split by whitespace works.
-            String[] inputArgs = input.split("\\s+"); 
-            
-            ProcessBuilder runProcessBuilder = new ProcessBuilder("java", "-cp", ".", "Main");
-            runProcessBuilder.command().addAll(java.util.Arrays.asList(inputArgs));
-            runProcessBuilder.directory(directory);
-            
-            Process runProcess = runProcessBuilder.start();
+            boolean allPassed = true;
+            String lastOutput = "";
+            String lastExpected = "";
 
-            boolean finished = runProcess.waitFor(2, TimeUnit.SECONDS); // 2s Time Limit
-            if (!finished) {
-                runProcess.destroy();
-                return SubmissionResponse.builder().success(false).message("Time Limit Exceeded").build();
+            // A. Visible Test Case
+            if (problem.getVisibleInput() != null && problem.getVisibleOutput() != null) {
+                lastExpected = problem.getVisibleOutput().trim();
+                lastOutput = runTestCase(directory, problem.getVisibleInput());
+                
+                if (lastOutput.startsWith("ERROR:")) {
+                    return SubmissionResponse.builder()
+                        .success(false)
+                        .message(lastOutput.replace("ERROR:", "").trim())
+                        .build();
+                }
+
+                if (!lastOutput.equals(lastExpected)) {
+                     return SubmissionResponse.builder()
+                        .success(false)
+                        .message("Wrong Answer on Visible Test Case")
+                        .output(lastOutput)
+                        .expectedOutput(lastExpected)
+                        .build();
+                }
             }
 
-            String output;
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(runProcess.getInputStream()))) {
-                output = reader.lines().collect(Collectors.joining("\n")).trim();
-            }
-            
-            String errorOutput;
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(runProcess.getErrorStream()))) {
-                errorOutput = reader.lines().collect(Collectors.joining("\n")).trim();
+            // B. Hidden Test Cases
+            if (!visibleOnly) {
+                 List<TestCase> hiddenTestCases = problem.getTestCases();
+                 for (TestCase tc : hiddenTestCases) {
+                      String inputKey = tc.getInput();
+                      String outputKey = tc.getExpectedOutput();
+                      
+                      String inputContent = readStreamToString(s3Service.getFileStream(inputKey));
+                      String expectedContent = readStreamToString(s3Service.getFileStream(outputKey)).trim();
+                      
+                      String outputContent = runTestCase(directory, inputContent);
+                      
+                      if (outputContent.startsWith("ERROR:")) {
+                            return SubmissionResponse.builder()
+                                .success(false)
+                                .message(outputContent.replace("ERROR:", "").trim())
+                                .build();
+                      }
+                      
+                      if (!outputContent.equals(expectedContent)) {
+                           return SubmissionResponse.builder()
+                                .success(false)
+                                .message("Wrong Answer on Hidden Test Case")
+                                .output(outputContent)
+                                .expectedOutput("Hidden")
+                                .build();
+                      }
+                 }
             }
 
-            if (runProcess.exitValue() != 0) {
-                 return SubmissionResponse.builder()
-                    .success(false)
-                    .message("Runtime Error")
-                    .output(errorOutput)
-                    .build();
-            }
-
-            // 5. Compare
-            String expected = testCase.getExpectedOutput().trim();
-            boolean passed = output.equals(expected);
-
-            if (passed && userEmail != null) {
+            if (userEmail != null) {
                 updateUserProgress(userEmail);
             }
 
             return SubmissionResponse.builder()
-                    .success(passed)
-                    .message(passed ? "Accepted" : "Wrong Answer")
-                    .output(output)
-                    .expectedOutput(expected)
+                    .success(true)
+                    .message("Accepted")
+                    .output(lastOutput)
+                    .expectedOutput(lastExpected)
                     .build();
 
         } catch (Exception e) {
@@ -133,6 +159,40 @@ public class CodeExecutionService {
                     .build();
         } finally {
             deleteDirectory(directory);
+        }
+    }
+
+    private String runTestCase(File directory, String input) throws IOException, InterruptedException {
+        String[] inputArgs = input.split("\\s+"); 
+        
+        ProcessBuilder runProcessBuilder = new ProcessBuilder("java", "-cp", ".", "Main");
+        runProcessBuilder.command().addAll(java.util.Arrays.asList(inputArgs));
+        runProcessBuilder.directory(directory);
+        
+        Process runProcess = runProcessBuilder.start();
+
+        boolean finished = runProcess.waitFor(2, TimeUnit.SECONDS); 
+        if (!finished) {
+            runProcess.destroy();
+            return "ERROR: Time Limit Exceeded";
+        }
+
+        if (runProcess.exitValue() != 0) {
+             String errorOutput;
+             try (BufferedReader reader = new BufferedReader(new InputStreamReader(runProcess.getErrorStream()))) {
+                 errorOutput = reader.lines().collect(Collectors.joining("\n")).trim();
+             }
+             return "ERROR: Runtime Error: " + errorOutput;
+        }
+
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(runProcess.getInputStream()))) {
+            return reader.lines().collect(Collectors.joining("\n")).trim();
+        }
+    }
+
+    private String readStreamToString(InputStream inputStream) throws IOException {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
+             return reader.lines().collect(Collectors.joining("\n"));
         }
     }
 

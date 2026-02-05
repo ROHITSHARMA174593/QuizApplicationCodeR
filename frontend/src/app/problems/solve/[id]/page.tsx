@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import api from "@/services/api";
 import { CodingProblem } from "@/types";
-import { ArrowLeft, Send, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { ArrowLeft, Send, CheckCircle, AlertCircle, Loader2, UploadCloud } from "lucide-react";
 import { useParams } from "next/navigation";
 
 import confetti from "canvas-confetti";
@@ -65,28 +65,19 @@ class Solution {
     }
   }, [id]);
 
-  const handleSubmit = async () => {
+  const handleRun = async () => {
     if (!problem) return;
     setSubmitting(true);
     setResult(null);
     
     try {
-        const response = await api.post('/problems/solve', {
+        const response = await api.post(`/problems/${problem.id}/run`, {
             problemId: problem.id,
             code: code,
             language: 'java'
         });
         
         const data = response.data;
-        if (data.success) {
-             confetti({
-                particleCount: 100,
-                spread: 70,
-                origin: { y: 0.6 },
-                colors: ['#22c55e', '#3b82f6', '#eab308']
-             });
-        }
-
         setResult({
             status: data.success ? 'success' : 'error',
             message: data.message,
@@ -96,12 +87,50 @@ class Solution {
     } catch (error) {
         setResult({
             status: 'error',
-            message: 'Submission failed: ' + error
+            message: 'Run failed: ' + error
         });
     } finally {
         setSubmitting(false);
     }
   };
+
+  const handleSubmit = async () => {
+      if (!problem) return;
+      setSubmitting(true);
+      setResult(null);
+      
+      try {
+          const response = await api.post(`/problems/${problem.id}/submit`, {
+              problemId: problem.id,
+              code: code,
+              language: 'java'
+          });
+          
+          const data = response.data;
+          if (data.success) {
+               confetti({
+                  particleCount: 100,
+                  spread: 70,
+                  origin: { y: 0.6 },
+                  colors: ['#22c55e', '#3b82f6', '#eab308']
+               });
+          }
+  
+          setResult({
+              status: data.success ? 'success' : 'error',
+              message: data.message,
+              output: data.output, // Might be empty for hidden cases if passing
+              expectedOutput: data.success ? "All Test Cases Passed" : "Hidden Test Case Failed"
+          });
+      } catch (error) {
+          setResult({
+              status: 'error',
+              message: 'Submission failed: ' + error
+          });
+      } finally {
+          setSubmitting(false);
+      }
+    };
 
   if (loading) {
     return (
@@ -156,18 +185,18 @@ class Solution {
                             <p className="whitespace-pre-wrap leading-relaxed">{problem.description}</p>
                         </div>
                         
-                        {/* Test Cases */}
-                        {problem.testCases && problem.testCases.length > 0 && (
+                        {/* Visible Test Case */}
+                        {problem.visibleInput && (
                             <div className="mt-8 space-y-4">
                                 <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Example Test Case</h3>
                                 <div className="bg-muted/50 p-4 rounded-lg border border-border font-mono text-sm space-y-2">
                                     <div>
                                         <span className="text-muted-foreground block text-xs mb-1">Input</span>
-                                        <div className="bg-background p-2 rounded text-foreground border border-border">{problem.testCases[0].input}</div>
+                                        <pre className="bg-background p-2 rounded text-foreground border border-border overflow-x-auto whitespace-pre-wrap">{problem.visibleInput}</pre>
                                     </div>
                                     <div>
                                         <span className="text-muted-foreground block text-xs mb-1">Target Output</span>
-                                        <div className="bg-background p-2 rounded text-foreground border border-border">{problem.testCases[0].expectedOutput}</div>
+                                        <pre className="bg-background p-2 rounded text-foreground border border-border overflow-x-auto whitespace-pre-wrap">{problem.visibleOutput}</pre>
                                     </div>
                                 </div>
                             </div>
@@ -190,18 +219,29 @@ class Solution {
                                     <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
                                     <span className="text-sm text-muted-foreground font-medium">Java Solution</span>
                                 </div>
-                                <Button 
-                                    size="sm" 
-                                    onClick={handleSubmit} 
-                                    disabled={submitting}
-                                    className={`transition-all ${submitting ? 'opacity-70 cursor-wait' : 'hover:scale-105'}`}
-                                >
-                                    {submitting ? (
-                                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Running...</>
-                                    ) : (
-                                        <><Send className="w-4 h-4 mr-2" /> Run</>
-                                    )}
-                                </Button>
+                                <div className="flex gap-2">
+                                    <Button 
+                                        size="sm" 
+                                        variant="secondary"
+                                        onClick={handleRun} 
+                                        disabled={submitting}
+                                        className={`transition-all ${submitting ? 'opacity-70 cursor-wait' : 'hover:scale-105'}`}
+                                    >
+                                        <Send className="w-4 h-4 mr-2" /> Run
+                                    </Button>
+                                    <Button 
+                                        size="sm" 
+                                        onClick={handleSubmit} 
+                                        disabled={submitting}
+                                        className={`transition-all bg-green-600 hover:bg-green-700 text-white ${submitting ? 'opacity-70 cursor-wait' : 'hover:scale-105'}`}
+                                    >
+                                        {submitting ? (
+                                            <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Submitting...</>
+                                        ) : (
+                                            <><UploadCloud className="w-4 h-4 mr-2" /> Submit</>
+                                        )}
+                                    </Button>
+                                </div>
                             </div>
 
                             {/* Monaco Editor */}

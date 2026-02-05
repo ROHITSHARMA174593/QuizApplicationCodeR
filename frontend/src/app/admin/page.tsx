@@ -6,14 +6,14 @@ import { motion } from "framer-motion";
 import {
   Users,
   Activity,
-  FileText,
-  ShieldCheck,
   Search,
   MoreVertical,
   Code,
-  Plus,
   Trash2,
   BookOpen,
+  Upload,
+  X,
+  FileText,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -81,11 +81,17 @@ export default function AdminDashboard() {
     title: "",
     description: "",
     difficulty: "Easy",
-    testCases: [{ input: "", expectedOutput: "", isHidden: false }],
+    testCases: [], // kept for compatibility if needed, but we use visibleInput/Output fields now
     methodName: "",
     returnType: "int",
+    visibleInput: "",
+    visibleOutput: "",
   });
 
+  // State for Hidden Test Case Files (S3)
+  const [hiddenFiles, setHiddenFiles] = useState<{ input: File | null; output: File | null }>({ input: null, output: null });
+  
+  // State for parameters
   const [parameters, setParameters] = useState<{ type: string; name: string }[]>([]);
   const [newParam, setNewParam] = useState({ type: "int", name: "" });
 
@@ -143,22 +149,41 @@ export default function AdminDashboard() {
   const handleAddProblem = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await api.post("/problems", {
+      // 1. Create the problem (Includes Visible Text)
+      const problemRes = await api.post("/problems", {
         ...problemData,
         parameters: JSON.stringify(parameters),
         category: { id: parseInt(selectedCategory) },
         topic: { id: parseInt(selectedTopic) },
       });
+
+      const problemId = problemRes.data.id;
+
+      // 2. Upload Hidden Test Cases (S3)
+      if (hiddenFiles.input && hiddenFiles.output) {
+        const formData = new FormData();
+        formData.append("input", hiddenFiles.input);
+        formData.append("output", hiddenFiles.output);
+        
+        await api.post(`/testcases/problem/${problemId}`, formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+      }
+
       alert("Problem added successfully!");
+      
+      // Reset Form
       setProblemData({
         title: "",
         description: "",
         difficulty: "Easy",
-
-        testCases: [{ input: "", expectedOutput: "", isHidden: false }],
+        testCases: [], 
         methodName: "",
         returnType: "int",
+        visibleInput: "",
+        visibleOutput: "",
       });
+      setHiddenFiles({ input: null, output: null });
       setParameters([]);
       setSelectedCategory("");
       setSelectedTopic("");
@@ -195,26 +220,10 @@ export default function AdminDashboard() {
   };
 
   // ... (Rest of existing handlers like addTestCase) ...
-  const handleAddTestCase = () => {
-    setProblemData({
-      ...problemData,
-      testCases: [
-        ...problemData.testCases,
-        { input: "", expectedOutput: "", isHidden: false },
-      ],
-    });
-  };
 
-  const handleRemoveTestCase = (index: number) => {
-    const newTestCases = problemData.testCases.filter((_, i) => i !== index);
-    setProblemData({ ...problemData, testCases: newTestCases });
-  };
-
-  const handleTestCaseChange = (index: number, field: string, value: any) => {
-    const newTestCases = [...problemData.testCases];
-    // @ts-ignore
-    newTestCases[index][field] = value;
-    setProblemData({ ...problemData, testCases: newTestCases });
+  const handleHiddenFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: "input" | "output") => {
+    const file = e.target.files?.[0] || null;
+    setHiddenFiles(prev => ({ ...prev, [type]: file }));
   };
 
   useEffect(() => {
@@ -488,14 +497,14 @@ export default function AdminDashboard() {
               </h3>
               <form onSubmit={handleCreateTopic} className="space-y-4">
                 <select
-                  className="flex h-10 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="flex h-10 w-full rounded-md border border-input bg-zinc-900 text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                   value={topicData.categoryId}
                   onChange={(e) => setTopicData({...topicData, categoryId: e.target.value})}
                   required
                 >
-                  <option value="">Select Category...</option>
+                  <option value="" className="bg-zinc-900 text-white">Select Category...</option>
                    {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
+                    <option key={cat.id} value={cat.id} className="bg-zinc-900 text-white">
                       {cat.name}
                     </option>
                   ))}
@@ -540,14 +549,14 @@ export default function AdminDashboard() {
                   Select Category
                 </label>
                 <select
-                  className="flex h-10 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="flex h-10 w-full rounded-md border border-input bg-zinc-900 text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
                   required
                 >
-                  <option value="">Select a language...</option>
+                  <option value="" className="bg-zinc-900 text-white">Select a language...</option>
                   {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
+                    <option key={cat.id} value={cat.id} className="bg-zinc-900 text-white">
                       {cat.name}
                     </option>
                   ))}
@@ -560,14 +569,14 @@ export default function AdminDashboard() {
                     Select Topic
                     </label>
                     <select
-                    className="flex h-10 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    className="flex h-10 w-full rounded-md border border-input bg-zinc-900 text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                     value={selectedTopic}
                     onChange={(e) => setSelectedTopic(e.target.value)}
                     required
                     >
-                    <option value="">Select a topic...</option>
+                    <option value="" className="bg-zinc-900 text-white">Select a topic...</option>
                     {topics.map((topic) => (
-                        <option key={topic.id} value={topic.id}>
+                        <option key={topic.id} value={topic.id} className="bg-zinc-900 text-white">
                         {topic.name}
                         </option>
                     ))}
@@ -646,7 +655,7 @@ export default function AdminDashboard() {
                     Correct Option
                   </label>
                   <select
-                    className="flex h-10 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    className="flex h-10 w-full rounded-md border border-input bg-zinc-900 text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                     value={questionData.correctAnswer}
                     onChange={(e) =>
                       setQuestionData({
@@ -656,11 +665,11 @@ export default function AdminDashboard() {
                     }
                     required
                   >
-                    <option value="">Select correct option...</option>
-                    <option value="Option A">Option A</option>
-                    <option value="Option B">Option B</option>
-                    <option value="Option C">Option C</option>
-                    <option value="Option D">Option D</option>
+                    <option value="" className="bg-zinc-900 text-white">Select correct option...</option>
+                    <option value="Option A" className="bg-zinc-900 text-white">Option A</option>
+                    <option value="Option B" className="bg-zinc-900 text-white">Option B</option>
+                    <option value="Option C" className="bg-zinc-900 text-white">Option C</option>
+                    <option value="Option D" className="bg-zinc-900 text-white">Option D</option>
                   </select>
                 </div>
                 <div className="space-y-2">
@@ -668,7 +677,7 @@ export default function AdminDashboard() {
                     Difficulty
                   </label>
                   <select
-                    className="flex h-10 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    className="flex h-10 w-full rounded-md border border-input bg-zinc-900 text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                     value={questionData.difficulty}
                     onChange={(e) =>
                       setQuestionData({
@@ -677,9 +686,9 @@ export default function AdminDashboard() {
                       })
                     }
                   >
-                    <option value="Easy">Easy</option>
-                    <option value="Medium">Medium</option>
-                    <option value="Hard">Hard</option>
+                    <option value="Easy" className="bg-zinc-900 text-white">Easy</option>
+                    <option value="Medium" className="bg-zinc-900 text-white">Medium</option>
+                    <option value="Hard" className="bg-zinc-900 text-white">Hard</option>
                   </select>
                 </div>
               </div>
@@ -705,14 +714,14 @@ export default function AdminDashboard() {
                     Select Category
                   </label>
                   <select
-                    className="flex h-10 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    className="flex h-10 w-full rounded-md border border-input bg-zinc-900 text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                     value={selectedCategory}
                     onChange={(e) => setSelectedCategory(e.target.value)}
                     required
                   >
-                    <option value="">Select a language/category...</option>
+                    <option value="" className="bg-zinc-900 text-white">Select a language/category...</option>
                     {categories.map((cat) => (
-                      <option key={cat.id} value={cat.id}>
+                      <option key={cat.id} value={cat.id} className="bg-zinc-900 text-white">
                         {cat.name}
                       </option>
                     ))}
@@ -725,14 +734,14 @@ export default function AdminDashboard() {
                         Select Topic
                         </label>
                         <select
-                        className="flex h-10 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        className="flex h-10 w-full rounded-md border border-input bg-zinc-900 text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                         value={selectedTopic}
                         onChange={(e) => setSelectedTopic(e.target.value)}
                         required
                         >
-                        <option value="">Select a topic...</option>
+                        <option value="" className="bg-zinc-900 text-white">Select a topic...</option>
                         {topics.map((topic) => (
-                            <option key={topic.id} value={topic.id}>
+                            <option key={topic.id} value={topic.id} className="bg-zinc-900 text-white">
                             {topic.name}
                             </option>
                         ))}
@@ -741,12 +750,20 @@ export default function AdminDashboard() {
                 )}
                 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Difficulty
-                  </label>
+                       <p className="text-2xl font-bold text-white mb-2">{stats.totalProblems}</p>
+                       <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="w-full text-xs border-zinc-700 hover:bg-zinc-800 text-gray-300"
+                          onClick={() => router.push("/admin/problems")}
+                       >
+                          Manage Problems
+                       </Button>
+                   </CardContent>
+               </Card>bel>
                    {/* Difficulty Select */}
                   <select
-                    className="flex h-10 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    className="flex h-10 w-full rounded-md border border-input bg-zinc-900 text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                     value={problemData.difficulty}
                     onChange={(e) =>
                       setProblemData({
@@ -755,9 +772,9 @@ export default function AdminDashboard() {
                       })
                     }
                   >
-                    <option value="Easy">Easy</option>
-                    <option value="Medium">Medium</option>
-                    <option value="Hard">Hard</option>
+                    <option value="Easy" className="bg-zinc-900 text-white">Easy</option>
+                    <option value="Medium" className="bg-zinc-900 text-white">Medium</option>
+                    <option value="Hard" className="bg-zinc-900 text-white">Hard</option>
                   </select>
                 </div>
               </div>
@@ -812,15 +829,15 @@ export default function AdminDashboard() {
                     <div className="space-y-2">
                         <label className="text-sm font-medium text-muted-foreground">Return Type</label>
                         <select 
-                            className="flex h-10 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                            className="flex h-10 w-full rounded-md border border-input bg-zinc-900 text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                             value={problemData.returnType}
                             onChange={(e) => setProblemData({...problemData, returnType: e.target.value})}
                         >
-                            <option value="int">int</option>
-                            <option value="String">String</option>
-                            <option value="int[]">int[]</option>
-                            <option value="boolean">boolean</option>
-                            <option value="void">void</option>
+                            <option value="int" className="bg-zinc-900 text-white">int</option>
+                            <option value="String" className="bg-zinc-900 text-white">String</option>
+                            <option value="int[]" className="bg-zinc-900 text-white">int[]</option>
+                            <option value="boolean" className="bg-zinc-900 text-white">boolean</option>
+                            <option value="void" className="bg-zinc-900 text-white">void</option>
                         </select>
                     </div>
                  </div>
@@ -829,14 +846,14 @@ export default function AdminDashboard() {
                     <label className="text-sm font-medium text-muted-foreground">Parameters</label>
                     <div className="flex gap-2">
                         <select 
-                            className="w-1/3 rounded-md border border-input bg-background/50 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                            className="w-1/3 rounded-md border border-input bg-zinc-900 text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                             value={newParam.type}
                             onChange={(e) => setNewParam({...newParam, type: e.target.value})}
                         >
-                            <option value="int">int</option>
-                            <option value="String">String</option>
-                            <option value="int[]">int[]</option>
-                            <option value="boolean">boolean</option>
+                            <option value="int" className="bg-zinc-900 text-white">int</option>
+                            <option value="String" className="bg-zinc-900 text-white">String</option>
+                            <option value="int[]" className="bg-zinc-900 text-white">int[]</option>
+                            <option value="boolean" className="bg-zinc-900 text-white">boolean</option>
                         </select>
                         <Input 
                             placeholder="Parameter Name (e.g. nums)"
@@ -869,94 +886,62 @@ export default function AdminDashboard() {
 
                {/* Test Cases (Same as before) */}
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-zinc-400">
-                    Test Cases
-                  </label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleAddTestCase}
-                  >
-                    <Plus size={16} className="mr-2" /> Add Test Case
-                  </Button>
-                </div>
-
-                <div className="space-y-4">
-                  {problemData.testCases.map((tc, index) => (
-                    <div
-                      key={index}
-                      className="grid grid-cols-12 gap-4 items-start bg-muted/30 p-4 rounded-lg border border-border/50"
-                    >
-                      <div className="col-span-5 space-y-2">
-                        <label className="text-xs text-muted-foreground">Input</label>
+                <div className="space-y-6">
+                  {/* Visible Test Cases (Text Input) */}
+                  <div className="space-y-4 border p-4 rounded-md border-border/50">
+                    <h3 className="text-sm font-medium text-white flex items-center gap-2">
+                       <FileText size={16} /> Visible Test Case (Stored in DB)
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-xs text-muted-foreground">Visible Input (Text)</label>
                         <textarea
-                          className="w-full bg-background border border-input rounded p-2 text-sm font-mono text-foreground focus:outline-none focus:border-primary/50"
-                          rows={2}
-                          value={tc.input}
-                          onChange={(e) =>
-                            handleTestCaseChange(index, "input", e.target.value)
-                          }
-                          placeholder="e.g. 2 3"
+                          placeholder="Enter visible input here (e.g. 1 2)"
+                          value={problemData.visibleInput || ""}
+                          onChange={(e) => setProblemData({...problemData, visibleInput: e.target.value})}
+                          className="flex min-h-[100px] w-full rounded-md border border-input bg-zinc-900 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-foreground font-mono"
                           required
                         />
                       </div>
-                      <div className="col-span-5 space-y-2">
-                        <label className="text-xs text-muted-foreground">
-                          Expected Output
-                        </label>
+                      <div className="space-y-2">
+                        <label className="text-xs text-muted-foreground">Visible Output (Text)</label>
                         <textarea
-                          className="w-full bg-background border border-input rounded p-2 text-sm font-mono text-foreground focus:outline-none focus:border-primary/50"
-                          rows={2}
-                          value={tc.expectedOutput}
-                          onChange={(e) =>
-                            handleTestCaseChange(
-                              index,
-                              "expectedOutput",
-                              e.target.value
-                            )
-                          }
-                          placeholder="e.g. 5"
+                          placeholder="Enter visible output here (e.g. 3)"
+                          value={problemData.visibleOutput || ""}
+                          onChange={(e) => setProblemData({...problemData, visibleOutput: e.target.value})}
+                          className="flex min-h-[100px] w-full rounded-md border border-input bg-zinc-900 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-foreground font-mono"
                           required
                         />
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            id={`hidden-${index}`}
-                            checked={tc.isHidden}
-                            onChange={(e) =>
-                              handleTestCaseChange(
-                                index,
-                                "isHidden",
-                                e.target.checked
-                              )
-                            }
-                            className="rounded bg-secondary border-border"
-                          />
-                          <label
-                            htmlFor={`hidden-${index}`}
-                            className="text-xs text-muted-foreground cursor-pointer"
-                          >
-                            Hidden Case
-                          </label>
-                        </div>
-                      </div>
-                      <div className="col-span-2 flex justify-end pt-6">
-                        {problemData.testCases.length > 1 && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRemoveTestCase(index)}
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                          >
-                            <Trash2 size={18} />
-                          </Button>
-                        )}
                       </div>
                     </div>
-                  ))}
+                  </div>
+
+                  {/* Hidden Test Cases (S3 Upload) */}
+                  <div className="space-y-4 border p-4 rounded-md border-border/50">
+                    <h3 className="text-sm font-medium text-white flex items-center gap-2">
+                       <Upload size={16} /> Hidden Test Cases (Stored in S3)
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                         <label className="text-xs text-muted-foreground">Hidden Input (input.txt)</label>
+                         <Input
+                           type="file"
+                           accept=".txt"
+                           onChange={(e) => handleHiddenFileChange(e, "input")}
+                           className="bg-zinc-900 border border-input text-foreground"
+                         />
+                      </div>
+                      <div className="space-y-2">
+                         <label className="text-xs text-muted-foreground">Hidden Output (output.txt)</label>
+                         <Input
+                           type="file"
+                           accept=".txt"
+                           onChange={(e) => handleHiddenFileChange(e, "output")}
+                           className="bg-zinc-900 border border-input text-foreground"
+                         />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 

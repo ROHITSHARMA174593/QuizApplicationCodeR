@@ -19,9 +19,10 @@ public class TestCase {
     private String input;
 
     @Column(nullable = false)
-    private String expectedOutput;
+    private String expectedOutput; // Stores S3 Key for hidden output
 
-    private boolean isHidden = false;
+    @Column(nullable = false)
+    private boolean isHidden = true; // Default to true as these are S3 keys now (hidden)
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "coding_problem_id")

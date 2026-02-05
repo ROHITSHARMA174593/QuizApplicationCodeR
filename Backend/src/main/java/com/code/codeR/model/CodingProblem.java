@@ -30,6 +30,12 @@ public class CodingProblem {
     private String returnType;
 
     @Column(columnDefinition = "TEXT")
+    private String visibleInput;
+
+    @Column(columnDefinition = "TEXT")
+    private String visibleOutput;
+
+    @Column(columnDefinition = "TEXT")
     private String parameters; // JSON format e.g. [{"type":"int","name":"a"}, ...]
 
     @ManyToOne(fetch = FetchType.EAGER)
