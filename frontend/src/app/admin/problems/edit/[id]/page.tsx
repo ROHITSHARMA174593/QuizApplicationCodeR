@@ -84,7 +84,7 @@ export default function EditProblemPage() {
                     <ArrowLeft className="w-5 h-5 text-gray-400" />
                 </Button>
                 <div>
-                     <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 text-transparent bg-clip-text">
+                     <h1 className="text-3xl font-bold bg-linear-to-r from-blue-400 to-purple-400 text-transparent bg-clip-text">
                         Edit Problem
                      </h1>
                      <p className="text-gray-400">Update problem details and test cases.</p>

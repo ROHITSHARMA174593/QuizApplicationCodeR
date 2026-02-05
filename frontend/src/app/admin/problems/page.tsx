@@ -62,7 +62,7 @@ export default function ProblemListPage() {
                         <ArrowLeft className="w-5 h-5 text-gray-400" />
                      </Button>
                      <div>
-                        <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-red-400 text-transparent bg-clip-text">
+                        <h1 className="text-3xl font-bold bg-linear-to-r from-purple-400 via-pink-400 to-red-400 text-transparent bg-clip-text">
                             Manage Problems
                         </h1>
                         <p className="text-gray-400 mt-1">View, edit, and manage all coding problems.</p>

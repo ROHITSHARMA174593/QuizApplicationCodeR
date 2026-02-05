@@ -85,7 +85,6 @@ public class CodeExecutionService {
             }
 
             // 4. Run against Test Cases
-            boolean allPassed = true;
             String lastOutput = "";
             String lastExpected = "";
 

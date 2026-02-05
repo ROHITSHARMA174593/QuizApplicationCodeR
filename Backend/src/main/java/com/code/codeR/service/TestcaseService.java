@@ -3,7 +3,7 @@ package com.code.codeR.service;
 import com.code.codeR.model.CodingProblem;
 import com.code.codeR.model.TestCase;
 import com.code.codeR.repository.CodingProblemRepository;
-import com.code.codeR.repository.TestCaseRepository; // Assuming you have this, otherwise I will use the one inside CodeProblem if mapped
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
