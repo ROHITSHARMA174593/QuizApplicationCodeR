@@ -22,7 +22,7 @@ public class CodeExecutionService {
     private final com.code.codeR.repository.UserProgressRepository userProgressRepository;
     private final CodeSecurityValidator securityValidator;
     private final MainMethodGenerator mainMethodGenerator;
-    private final S3Service s3Service;
+    private final FileStorageService fileStorageService;
 
     public SubmissionResponse runVisibleTest(Long problemId, String userCode, String userEmail) {
         CodingProblem problem = problemService.getProblemById(problemId);
@@ -90,23 +90,37 @@ public class CodeExecutionService {
 
             // A. Visible Test Case
             if (problem.getVisibleInput() != null && problem.getVisibleOutput() != null) {
-                lastExpected = problem.getVisibleOutput().trim();
-                lastOutput = runTestCase(directory, problem.getVisibleInput());
-                
-                if (lastOutput.startsWith("ERROR:")) {
-                    return SubmissionResponse.builder()
-                        .success(false)
-                        .message(lastOutput.replace("ERROR:", "").trim())
-                        .build();
-                }
+                try (BufferedReader inputReader = new BufferedReader(new StringReader(problem.getVisibleInput()));
+                     BufferedReader expectedReader = new BufferedReader(new StringReader(problem.getVisibleOutput()))) {
+                     
+                     String inputLine;
+                     String expectedLine;
+                     int lineNumber = 1;
+                     while ((inputLine = inputReader.readLine()) != null) {
+                         expectedLine = expectedReader.readLine();
+                         if (inputLine.trim().isEmpty()) continue;
+                         if (expectedLine == null) expectedLine = "";
 
-                if (!lastOutput.equals(lastExpected)) {
-                     return SubmissionResponse.builder()
-                        .success(false)
-                        .message("Wrong Answer on Visible Test Case")
-                        .output(lastOutput)
-                        .expectedOutput(lastExpected)
-                        .build();
+                         lastExpected = expectedLine.trim();
+                         lastOutput = runTestCase(directory, inputLine.trim());
+                         
+                         if (lastOutput.startsWith("ERROR:")) {
+                             return SubmissionResponse.builder()
+                                 .success(false)
+                                 .message(lastOutput.replace("ERROR:", "").trim())
+                                 .build();
+                         }
+
+                         if (!lastOutput.equals(lastExpected)) {
+                              return SubmissionResponse.builder()
+                                 .success(false)
+                                 .message("Wrong Answer on Visible Test Case (Line " + lineNumber + ")")
+                                 .output(lastOutput)
+                                 .expectedOutput(lastExpected)
+                                 .build();
+                         }
+                         lineNumber++;
+                     }
                 }
             }
 
@@ -117,25 +131,36 @@ public class CodeExecutionService {
                       String inputKey = tc.getInput();
                       String outputKey = tc.getExpectedOutput();
                       
-                      String inputContent = readStreamToString(s3Service.getFileStream(inputKey));
-                      String expectedContent = readStreamToString(s3Service.getFileStream(outputKey)).trim();
-                      
-                      String outputContent = runTestCase(directory, inputContent);
-                      
-                      if (outputContent.startsWith("ERROR:")) {
-                            return SubmissionResponse.builder()
-                                .success(false)
-                                .message(outputContent.replace("ERROR:", "").trim())
-                                .build();
-                      }
-                      
-                      if (!outputContent.equals(expectedContent)) {
-                           return SubmissionResponse.builder()
-                                .success(false)
-                                .message("Wrong Answer on Hidden Test Case")
-                                .output(outputContent)
-                                .expectedOutput("Hidden")
-                                .build();
+                      try (BufferedReader inputReader = new BufferedReader(new InputStreamReader(fileStorageService.getFileInputStream(inputKey, true)));
+                           BufferedReader expectedReader = new BufferedReader(new InputStreamReader(fileStorageService.getFileInputStream(outputKey, false)))) {
+                           
+                           String inputLine;
+                           String expectedLine;
+                           int lineNumber = 1;
+                           while ((inputLine = inputReader.readLine()) != null) {
+                               expectedLine = expectedReader.readLine();
+                               if (inputLine.trim().isEmpty()) continue;
+                               if (expectedLine == null) expectedLine = "";
+                               
+                               String outputContent = runTestCase(directory, inputLine.trim());
+                               
+                               if (outputContent.startsWith("ERROR:")) {
+                                     return SubmissionResponse.builder()
+                                         .success(false)
+                                         .message(outputContent.replace("ERROR:", "").trim())
+                                         .build();
+                               }
+                               
+                               if (!outputContent.equals(expectedLine.trim())) {
+                                    return SubmissionResponse.builder()
+                                         .success(false)
+                                         .message("Wrong Answer on Hidden Test Case (Line " + lineNumber + ")")
+                                         .output(outputContent)
+                                         .expectedOutput("Hidden")
+                                         .build();
+                               }
+                               lineNumber++;
+                           }
                       }
                  }
             }
@@ -186,12 +211,6 @@ public class CodeExecutionService {
 
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(runProcess.getInputStream()))) {
             return reader.lines().collect(Collectors.joining("\n")).trim();
-        }
-    }
-
-    private String readStreamToString(InputStream inputStream) throws IOException {
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
-             return reader.lines().collect(Collectors.joining("\n"));
         }
     }
 

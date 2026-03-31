@@ -12,7 +12,7 @@ import java.util.List;
 public class ProblemService {
 
     private final CodingProblemRepository problemRepository;
-    private final S3Service s3Service;
+    private final FileStorageService fileStorageService;
 
     public List<CodingProblem> getProblemsByCategory(Long categoryId) {
         return problemRepository.findByCategoryId(categoryId);
@@ -58,11 +58,11 @@ public class ProblemService {
     public void deleteProblem(Long id) {
         CodingProblem problem = getProblemById(id);
         
-        // Delete S3 files for all test cases
+        // Delete local files for all test cases
         if (problem.getTestCases() != null) {
             for (com.code.codeR.model.TestCase tc : problem.getTestCases()) {
-                if (tc.getInput() != null) s3Service.deleteFile(tc.getInput());
-                if (tc.getExpectedOutput() != null) s3Service.deleteFile(tc.getExpectedOutput());
+                if (tc.getInput() != null) fileStorageService.deleteInputFile(tc.getInput());
+                if (tc.getExpectedOutput() != null) fileStorageService.deleteOutputFile(tc.getExpectedOutput());
             }
         }
         

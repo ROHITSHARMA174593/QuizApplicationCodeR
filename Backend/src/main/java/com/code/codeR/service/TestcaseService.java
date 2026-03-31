@@ -16,7 +16,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TestcaseService {
 
-    private final S3Service s3Service;
+    private final FileStorageService fileStorageService;
     private final CodingProblemRepository codingProblemRepository;
     // Assuming you might need a TestCaseRepository if you want to manage them directly
     // If not present, I'll rely on cascading or create it.
@@ -28,12 +28,12 @@ public class TestcaseService {
         CodingProblem problem = codingProblemRepository.findById(problemId)
                 .orElseThrow(() -> new RuntimeException("Problem not found with id: " + problemId));
 
-        String inputKey = s3Service.uploadFile(inputFile);
-        String outputKey = s3Service.uploadFile(outputFile);
+        String inputKey = fileStorageService.saveInputFile(inputFile);
+        String outputKey = fileStorageService.saveOutputFile(outputFile);
 
         TestCase testCase = new TestCase();
-        testCase.setInput(inputKey);  // Storing S3 key instead of raw content
-        testCase.setExpectedOutput(outputKey); // Storing S3 key
+        testCase.setInput(inputKey);  // Storing local file name
+        testCase.setExpectedOutput(outputKey); // Storing local file name
         testCase.setCodingProblem(problem);
         
         return testCaseRepository.save(testCase);
@@ -47,8 +47,8 @@ public class TestcaseService {
              throw new IllegalArgumentException("Input and Output files cannot be empty");
         }
 
-        String inputKey = s3Service.uploadFile(input);
-        String outputKey = s3Service.uploadFile(output);
+        String inputKey = fileStorageService.saveInputFile(input);
+        String outputKey = fileStorageService.saveOutputFile(output);
 
         TestCase testCase = new TestCase();
         testCase.setInput(inputKey); 
@@ -69,20 +69,24 @@ public class TestcaseService {
                 .orElseThrow(() -> new RuntimeException("Testcase not found"));
         
         String key = isInput ? testCase.getInput() : testCase.getExpectedOutput();
-        return s3Service.getFileStream(key);
+        try {
+            return fileStorageService.getFileInputStream(key, isInput);
+        } catch (IOException e) {
+            throw new RuntimeException("Could not read file: " + key, e);
+        }
     }
 
     public void deleteTestCase(Long testCaseId) {
         TestCase testCase = testCaseRepository.findById(testCaseId)
                 .orElseThrow(() -> new RuntimeException("Testcase not found"));
 
-        // Delete files from S3
+        // Delete files from Local Storage
         try {
-            if (testCase.getInput() != null) s3Service.deleteFile(testCase.getInput());
-            if (testCase.getExpectedOutput() != null) s3Service.deleteFile(testCase.getExpectedOutput());
+            if (testCase.getInput() != null) fileStorageService.deleteInputFile(testCase.getInput());
+            if (testCase.getExpectedOutput() != null) fileStorageService.deleteOutputFile(testCase.getExpectedOutput());
         } catch (Exception e) {
             // Log error but continue to delete from DB or rethrow
-            System.err.println("Failed to delete S3 files: " + e.getMessage());
+            System.err.println("Failed to delete local files: " + e.getMessage());
         }
 
         testCaseRepository.delete(testCase);
@@ -94,7 +98,7 @@ public class TestcaseService {
         
         List<TestCase> testCases = problem.getTestCases();
         // Create a copy list to iterate or use repository delete
-        // Using repository logic one by one to ensure S3 cleanup
+        // Using repository logic one by one to ensure local storage cleanup
         // Note: JPA might have issue if we iterate the list mapped by problem while deleting.
         // Better to fetch IDs first or use repository.findAllByProblemId if exists.
         // But since we have the list in memory:
