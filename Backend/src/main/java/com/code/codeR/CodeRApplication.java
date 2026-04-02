@@ -12,4 +12,4 @@ public class CodeRApplication {
 	}
 }
 //todo : https://quizapplicationcoder.onrender.com
-// https://quizapplicationcoder.onrender.com/api/auth/login
+// https://quizapplicationcoder.onrender.com/swagger-ui/index.html
