@@ -5,7 +5,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class TestDeploymentController {
-    @GetMapping("")
+    @GetMapping("/")
     public String testDeployment() {
         return "Deployment Successful"; 
     }
