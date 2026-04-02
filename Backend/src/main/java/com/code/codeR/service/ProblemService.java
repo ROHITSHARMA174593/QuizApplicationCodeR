@@ -4,6 +4,7 @@ import com.code.codeR.model.CodingProblem;
 import com.code.codeR.repository.CodingProblemRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -12,7 +13,7 @@ import java.util.List;
 public class ProblemService {
 
     private final CodingProblemRepository problemRepository;
-    private final FileStorageService fileStorageService;
+    private final TestcaseService testcaseService;
 
     public List<CodingProblem> getProblemsByCategory(Long categoryId) {
         return problemRepository.findByCategoryId(categoryId);
@@ -27,6 +28,7 @@ public class ProblemService {
                 .orElseThrow(() -> new RuntimeException("Problem not found with id: " + id));
     }
 
+    @Transactional
     public CodingProblem createProblem(CodingProblem problem) {
         if (problem.getTestCases() != null) {
             problem.getTestCases().forEach(tc -> tc.setCodingProblem(problem));
@@ -38,6 +40,7 @@ public class ProblemService {
         return problemRepository.findByTopicId(topicId);
     }
 
+    @Transactional
     public CodingProblem updateProblem(Long id, CodingProblem problemDetails) {
         CodingProblem problem = getProblemById(id);
         
@@ -55,17 +58,12 @@ public class ProblemService {
         return problemRepository.save(problem);
     }
 
+    @Transactional
     public void deleteProblem(Long id) {
-        CodingProblem problem = getProblemById(id);
+        // Use optimized batch deletion for test cases
+        testcaseService.deleteAllTestCases(id);
         
-        // Delete local files for all test cases
-        if (problem.getTestCases() != null) {
-            for (com.code.codeR.model.TestCase tc : problem.getTestCases()) {
-                if (tc.getInput() != null) fileStorageService.deleteInputFile(tc.getInput());
-                if (tc.getExpectedOutput() != null) fileStorageService.deleteOutputFile(tc.getExpectedOutput());
-            }
-        }
-        
-        problemRepository.delete(problem);
+        // Delete the problem itself
+        problemRepository.deleteById(id);
     }
 }

@@ -212,7 +212,7 @@ class Solution {
                 <PanelGroup orientation="vertical">
                     {/* Top: Editor */}
                     <Panel defaultSize="60" minSize="30">
-                        <div className="h-full flex flex-col bg-card relative">
+                        <div className="h-full flex flex-col bg-[#1e1e1e] relative">
                             {/* Editor Toolbar */}
                             <div className="h-12 flex items-center justify-between px-4 bg-muted/30 border-b border-border">
                                 <div className="flex items-center gap-2">
@@ -250,7 +250,7 @@ class Solution {
                                     height="100%"
                                     defaultLanguage="java"
                                     value={code}
-                                    theme="vs"
+                                    theme="vs-dark"
                                     onChange={(value) => setCode(value || "")}
                                     options={{
                                         minimap: { enabled: false },
@@ -260,7 +260,6 @@ class Solution {
                                         scrollBeyondLastLine: false,
                                         readOnly: false,
                                         automaticLayout: true,
-                                        backgroundColor: 'transparent',
                                     }}
                                 />
                             </div>

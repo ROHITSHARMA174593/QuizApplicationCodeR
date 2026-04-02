@@ -6,6 +6,7 @@ import com.code.codeR.repository.UserProgressRepository;
 import com.code.codeR.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -14,13 +15,14 @@ public class DashboardService {
     private final UserProgressRepository progressRepository;
     private final UserRepository userRepository;
 
+    @Transactional
     public UserProgress getUserProgress(String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        
-        return progressRepository.findByUserId(user.getId())
+        return progressRepository.findByUserEmail(email)
                 .orElseGet(() -> {
-                    // Create default progress if not exists
+                    // We still need the user if progress doesn't exist
+                    User user = userRepository.findByEmail(email)
+                            .orElseThrow(() -> new RuntimeException("User not found"));
+                    
                     UserProgress newProgress = new UserProgress();
                     newProgress.setUser(user);
                     newProgress.setQuizzesAttempted(0);
@@ -28,6 +30,8 @@ public class DashboardService {
                     return progressRepository.save(newProgress);
                 });
     }
+
+    @Transactional
     public UserProgress updateProgress(String email, int quizScoreToAdd, boolean problemSolved) {
         UserProgress progress = getUserProgress(email);
         

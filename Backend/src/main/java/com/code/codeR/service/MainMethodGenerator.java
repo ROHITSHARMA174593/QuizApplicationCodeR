@@ -47,7 +47,7 @@ public class MainMethodGenerator {
                 if (type.equals("int")) {
                     sb.append("Integer.parseInt(args[").append(argIndex).append("]);\n");
                 } else if (type.equals("String")) {
-                    sb.append("args[").append(argIndex).append("];\n");
+                    sb.append("parseString(args[").append(argIndex).append("]);\n");
                 } else if (type.equals("int[]")) {
                     // Expecting input like "[1,2,3]"
                     sb.append("parseIntArray(args[").append(argIndex).append("]);\n");
@@ -92,15 +92,29 @@ public class MainMethodGenerator {
     private void addHelperMethods(StringBuilder sb) {
         // parseIntArray helper
         sb.append("    private static int[] parseIntArray(String input) {\n");
+        sb.append("        if (input == null || input.trim().isEmpty() || input.trim().equals(\"[]\")) {\n");
+        sb.append("            return new int[0];\n");
+        sb.append("        }\n");
         sb.append("        input = input.trim();\n");
-        sb.append("        if (input.equals(\"[]\")) return new int[0];\n");
-        sb.append("        input = input.substring(1, input.length() - 1);\n"); // Remove [ ]
-        sb.append("        String[] parts = input.split(\",\");\n");
+        sb.append("        if (input.startsWith(\"[\") && input.endsWith(\"]\")) {\n");
+        sb.append("            input = input.substring(1, input.length() - 1);\n");
+        sb.append("        }\n");
+        sb.append("        String[] parts = input.split(\"[,\\\\s]+\");\n");
         sb.append("        int[] res = new int[parts.length];\n");
         sb.append("        for(int i=0; i<parts.length; i++) {\n");
         sb.append("            res[i] = Integer.parseInt(parts[i].trim());\n");
         sb.append("        }\n");
         sb.append("        return res;\n");
+        sb.append("    }\n\n");
+
+        // parseString helper
+        sb.append("    private static String parseString(String input) {\n");
+        sb.append("        if (input == null) return \"\";\n");
+        sb.append("        input = input.trim();\n");
+        sb.append("        if (input.startsWith(\"\\\"\") && input.endsWith(\"\\\"\")) {\n");
+        sb.append("            return input.substring(1, input.length() - 1);\n");
+        sb.append("        }\n");
+        sb.append("        return input;\n");
         sb.append("    }\n\n");
 
         // printResult helper

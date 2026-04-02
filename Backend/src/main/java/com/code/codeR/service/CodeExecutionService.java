@@ -3,8 +3,12 @@ package com.code.codeR.service;
 import com.code.codeR.dto.SubmissionResponse;
 import com.code.codeR.model.CodingProblem;
 import com.code.codeR.model.TestCase;
+import com.code.codeR.model.User;
+import com.code.codeR.model.UserProgress;
+import com.code.codeR.repository.CodingProblemRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -17,15 +21,20 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CodeExecutionService {
 
-    private final ProblemService problemService;
+    private final CodingProblemRepository problemRepository;
     private final com.code.codeR.repository.UserRepository userRepository;
     private final com.code.codeR.repository.UserProgressRepository userProgressRepository;
     private final CodeSecurityValidator securityValidator;
     private final MainMethodGenerator mainMethodGenerator;
     private final FileStorageService fileStorageService;
 
+    @Transactional(readOnly = true)
     public SubmissionResponse runVisibleTest(Long problemId, String userCode, String userEmail) {
-        CodingProblem problem = problemService.getProblemById(problemId);
+        // Use optimized fetch to get problem and test cases in one hit if needed, 
+        // though visible tests don't strictly need hidden test cases, 
+        // using the same optimized method is fine.
+        CodingProblem problem = problemRepository.findByIdWithTestCases(problemId)
+                .orElseThrow(() -> new RuntimeException("Problem not found"));
 
         try {
             securityValidator.validate(userCode);
@@ -36,8 +45,10 @@ public class CodeExecutionService {
         return executeInternally(problem, userCode, userEmail, true);
     }
 
+    @Transactional(readOnly = true)
     public SubmissionResponse submitCode(Long problemId, String userCode, String userEmail) {
-        CodingProblem problem = problemService.getProblemById(problemId);
+        CodingProblem problem = problemRepository.findByIdWithTestCases(problemId)
+                .orElseThrow(() -> new RuntimeException("Problem not found"));
         
         try {
             securityValidator.validate(userCode);
@@ -49,6 +60,8 @@ public class CodeExecutionService {
     }
 
     private SubmissionResponse executeInternally(CodingProblem problem, String userCode, String userEmail, boolean visibleOnly) {
+        // ... (rest of the method logic remains the same)
+        // Note: problem.getTestCases() is now already loaded thanks to findByIdWithTestCases
         String tempDir = System.getProperty("java.io.tmpdir") + File.separator + "codeR_" + UUID.randomUUID();
         File directory = new File(tempDir);
         
@@ -96,13 +109,15 @@ public class CodeExecutionService {
                      String inputLine;
                      String expectedLine;
                      int lineNumber = 1;
+                     int paramCount = getParameterCount(problem.getParameters());
+
                      while ((inputLine = inputReader.readLine()) != null) {
                          expectedLine = expectedReader.readLine();
-                         if (inputLine.trim().isEmpty()) continue;
+                         // We no longer skip empty lines to support empty arrays/strings
                          if (expectedLine == null) expectedLine = "";
 
                          lastExpected = expectedLine.trim();
-                         lastOutput = runTestCase(directory, inputLine.trim());
+                         lastOutput = runTestCase(directory, inputLine.trim(), paramCount);
                          
                          if (lastOutput.startsWith("ERROR:")) {
                              return SubmissionResponse.builder()
@@ -137,12 +152,14 @@ public class CodeExecutionService {
                            String inputLine;
                            String expectedLine;
                            int lineNumber = 1;
+                           int paramCount = getParameterCount(problem.getParameters());
+
                            while ((inputLine = inputReader.readLine()) != null) {
                                expectedLine = expectedReader.readLine();
-                               if (inputLine.trim().isEmpty()) continue;
+                               // No longer skipping empty lines
                                if (expectedLine == null) expectedLine = "";
                                
-                               String outputContent = runTestCase(directory, inputLine.trim());
+                               String outputContent = runTestCase(directory, inputLine.trim(), paramCount);
                                
                                if (outputContent.startsWith("ERROR:")) {
                                      return SubmissionResponse.builder()
@@ -186,11 +203,39 @@ public class CodeExecutionService {
         }
     }
 
-    private String runTestCase(File directory, String input) throws IOException, InterruptedException {
-        String[] inputArgs = input.split("\\s+"); 
+    private String runTestCase(File directory, String input, int paramCount) throws IOException, InterruptedException {
+        List<String> inputArgs = new java.util.ArrayList<>();
+        
+        if (paramCount <= 1) {
+            inputArgs.add(input);
+        } else {
+            // Smart split that respects [] and ""
+            StringBuilder currentArg = new StringBuilder();
+            boolean inBrackets = false;
+            boolean inQuotes = false;
+            
+            for (int i = 0; i < input.length(); i++) {
+                char ch = input.charAt(i);
+                if (ch == '[' && !inQuotes) inBrackets = true;
+                if (ch == ']' && !inQuotes) inBrackets = false;
+                if (ch == '"' && !inBrackets) inQuotes = !inQuotes;
+                
+                if (Character.isWhitespace(ch) && !inBrackets && !inQuotes) {
+                    if (currentArg.length() > 0) {
+                        inputArgs.add(currentArg.toString());
+                        currentArg.setLength(0);
+                    }
+                } else {
+                    currentArg.append(ch);
+                }
+            }
+            if (currentArg.length() > 0) {
+                inputArgs.add(currentArg.toString());
+            }
+        }
         
         ProcessBuilder runProcessBuilder = new ProcessBuilder("java", "-cp", ".", "Main");
-        runProcessBuilder.command().addAll(java.util.Arrays.asList(inputArgs));
+        runProcessBuilder.command().addAll(inputArgs);
         runProcessBuilder.directory(directory);
         
         Process runProcess = runProcessBuilder.start();
@@ -214,12 +259,25 @@ public class CodeExecutionService {
         }
     }
 
+    private int getParameterCount(String paramsJson) {
+        if (paramsJson == null || paramsJson.isEmpty()) return 0;
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            List<?> list = mapper.readValue(paramsJson, List.class);
+            return list.size();
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    @Transactional
     private void updateUserProgress(String email) {
-        com.code.codeR.model.User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        
-        com.code.codeR.model.UserProgress progress = userProgressRepository.findByUserId(user.getId())
-                .orElse(new com.code.codeR.model.UserProgress(null, user, 0, 0));
+        UserProgress progress = userProgressRepository.findByUserEmail(email)
+                .orElseGet(() -> {
+                    User user = userRepository.findByEmail(email)
+                            .orElseThrow(() -> new RuntimeException("User not found"));
+                    return new UserProgress(null, user, 0, 0);
+                });
         
         progress.setProblemsSolved(progress.getProblemsSolved() + 1);
         userProgressRepository.save(progress);

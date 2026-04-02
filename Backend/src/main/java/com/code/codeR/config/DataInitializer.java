@@ -31,6 +31,7 @@ public class DataInitializer implements CommandLineRunner {
         
         createDefaultUsers();
         System.out.println("--- CATEGORIES & USERS CHECKED/INITIALIZED ---");
+        System.out.println("Total Categories in DB: " + categoryRepository.findAll().size());
     }
 
     private void createCategoryIfNotFound(String name, String description) {
@@ -62,6 +63,16 @@ public class DataInitializer implements CommandLineRunner {
             admin.setRole("ADMIN");
             userRepository.save(admin);
             System.out.println("--- ADMIN USER CREATED (admin@gmail.com) ---");
+        }
+
+        if (!userRepository.existsByEmail("rohit@gmail.com")) {
+            User admin = new User();
+            admin.setName("Rohit Sharma(rohitsharma)");
+            admin.setEmail("rohit@gmail.com");
+            admin.setPassword(passwordEncoder.encode("rohitsharma"));
+            admin.setRole("USER");
+            userRepository.save(admin);
+            System.out.println("--- Rohit- USER CREATED (admin@gmail.com) ---");
         }
     }
 
