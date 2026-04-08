@@ -23,16 +23,19 @@ public class MainMethodGenerator {
         sb.append("import java.util.*;\n\n");
         sb.append("public class Main {\n");
         sb.append("    public static void main(String[] args) {\n");
-        sb.append("        try {\n");
+        sb.append("        Scanner sc = new Scanner(System.in);\n");
+        sb.append("        Solution solution = new Solution();\n\n");
+        sb.append("        while (sc.hasNextLine()) {\n");
+        sb.append("            String line = sc.nextLine();\n");
+        sb.append("            if (line.trim().isEmpty()) continue;\n\n");
+        sb.append("            try {\n");
         
-        // 1. Parse Arguments based on parameter definitions
         try {
             List<Map<String, String>> params = objectMapper.readValue(paramsJson, new TypeReference<>() {});
+            int paramCount = params.size();
             
-            sb.append("            if (args.length < ").append(params.size()).append(") {\n");
-            sb.append("                System.out.println(\"Insufficient arguments provided to Main\");\n");
-            sb.append("                return;\n");
-            sb.append("            }\n\n");
+            sb.append("                String[] parts = splitArguments(line, ").append(paramCount).append(");\n");
+            sb.append("                if (parts.length < ").append(paramCount).append(") continue;\n\n");
             
             int argIndex = 0;
             StringBuilder methodCallArgs = new StringBuilder();
@@ -41,20 +44,17 @@ public class MainMethodGenerator {
                 String type = param.get("type");
                 String name = param.get("name");
                 
-                sb.append("            ").append(type).append(" ").append(name).append(" = ");
+                sb.append("                ").append(type).append(" ").append(name).append(" = ");
                 
-                // Input Parsing Logic
                 if (type.equals("int")) {
-                    sb.append("Integer.parseInt(args[").append(argIndex).append("]);\n");
+                    sb.append("Integer.parseInt(parts[").append(argIndex).append("].trim());\n");
                 } else if (type.equals("String")) {
-                    sb.append("parseString(args[").append(argIndex).append("]);\n");
+                    sb.append("parseString(parts[").append(argIndex).append("].trim());\n");
                 } else if (type.equals("int[]")) {
-                    // Expecting input like "[1,2,3]"
-                    sb.append("parseIntArray(args[").append(argIndex).append("]);\n");
+                    sb.append("parseIntArray(parts[").append(argIndex).append("].trim());\n");
                 } else if (type.equals("boolean")) {
-                    sb.append("Boolean.parseBoolean(args[").append(argIndex).append("]);\n");
+                    sb.append("Boolean.parseBoolean(parts[").append(argIndex).append("].trim());\n");
                 } else {
-                    // Fallback for unknown types
                     sb.append("null; // Unsupported type: ").append(type).append("\n");
                 }
                 
@@ -63,33 +63,59 @@ public class MainMethodGenerator {
                 argIndex++;
             }
             
-            // 2. Instantiate and Call
-            sb.append("\n            Solution solution = new Solution();\n");
-            
             if (returnType.equals("void")) {
-                sb.append("            solution.").append(methodName).append("(").append(methodCallArgs).append(");\n");
+                sb.append("                solution.").append(methodName).append("(").append(methodCallArgs).append(");\n");
             } else {
-                sb.append("            ").append(returnType).append(" result = solution.").append(methodName).append("(").append(methodCallArgs).append(");\n");
-                sb.append("            printResult(result);\n");
+                sb.append("                ").append(returnType).append(" result = solution.").append(methodName).append("(").append(methodCallArgs).append(");\n");
+                sb.append("                printResult(result);\n");
             }
+            
+            sb.append("                System.out.println(\"---CASE_END---\");\n");
 
         } catch (JsonProcessingException e) {
-            sb.append("            System.out.println(\"Error parsing problem parameters: ").append(e.getMessage()).append("\");\n");
+            sb.append("                System.out.println(\"Error parsing problem parameters: ").append(e.getMessage()).append("\");\n");
         }
         
-        sb.append("        } catch (Exception e) {\n");
-        sb.append("            e.printStackTrace();\n");
+        sb.append("            } catch (Exception e) {\n");
+        sb.append("                System.out.println(\"RUNTIME_ERROR: \" + e.getMessage());\n");
+        sb.append("                System.out.println(\"---CASE_END---\");\n");
+        sb.append("            }\n");
         sb.append("        }\n");
-        sb.append("    }\n\n"); // End main
+        sb.append("    }\n\n");
 
-        // Helper Methods
         addHelperMethods(sb);
 
-        sb.append("}\n"); // End Class
+        sb.append("}\n");
         return sb.toString();
     }
 
     private void addHelperMethods(StringBuilder sb) {
+        // splitArguments helper (Smart split that respects [] and "")
+        sb.append("    private static String[] splitArguments(String input, int count) {\n");
+        sb.append("        List<String> args = new ArrayList<>();\n");
+        sb.append("        StringBuilder current = new StringBuilder();\n");
+        sb.append("        boolean inBrackets = false;\n");
+        sb.append("        boolean inQuotes = false;\n");
+        sb.append("        \n");
+        sb.append("        for (int i = 0; i < input.length(); i++) {\n");
+        sb.append("            char ch = input.charAt(i);\n");
+        sb.append("            if (ch == '[' && !inQuotes) inBrackets = true;\n");
+        sb.append("            else if (ch == ']' && !inQuotes) inBrackets = false;\n");
+        sb.append("            else if (ch == '\"' && !inBrackets) inQuotes = !inQuotes;\n");
+        sb.append("            \n");
+        sb.append("            if (Character.isWhitespace(ch) && !inBrackets && !inQuotes) {\n");
+        sb.append("                if (current.length() > 0) {\n");
+        sb.append("                    args.add(current.toString());\n");
+        sb.append("                    current.setLength(0);\n");
+        sb.append("                }\n");
+        sb.append("            } else {\n");
+        sb.append("                current.append(ch);\n");
+        sb.append("            }\n");
+        sb.append("        }\n");
+        sb.append("        if (current.length() > 0) args.add(current.toString());\n");
+        sb.append("        return args.toArray(new String[0]);\n");
+        sb.append("    }\n\n");
+
         // parseIntArray helper
         sb.append("    private static int[] parseIntArray(String input) {\n");
         sb.append("        if (input == null || input.trim().isEmpty() || input.trim().equals(\"[]\")) {\n");
@@ -100,10 +126,12 @@ public class MainMethodGenerator {
         sb.append("            input = input.substring(1, input.length() - 1);\n");
         sb.append("        }\n");
         sb.append("        String[] parts = input.split(\"[,\\\\s]+\");\n");
-        sb.append("        int[] res = new int[parts.length];\n");
-        sb.append("        for(int i=0; i<parts.length; i++) {\n");
-        sb.append("            res[i] = Integer.parseInt(parts[i].trim());\n");
+        sb.append("        List<Integer> list = new ArrayList<>();\n");
+        sb.append("        for (String p : parts) {\n");
+        sb.append("            if (!p.trim().isEmpty()) list.add(Integer.parseInt(p.trim()));\n");
         sb.append("        }\n");
+        sb.append("        int[] res = new int[list.size()];\n");
+        sb.append("        for(int i=0; i<list.size(); i++) res[i] = list.get(i);\n");
         sb.append("        return res;\n");
         sb.append("    }\n\n");
 
@@ -126,4 +154,5 @@ public class MainMethodGenerator {
         sb.append("        }\n");
         sb.append("    }\n");
     }
+
 }

@@ -103,39 +103,33 @@ public class CodeExecutionService {
 
             // A. Visible Test Case
             if (problem.getVisibleInput() != null && problem.getVisibleOutput() != null) {
-                try (BufferedReader inputReader = new BufferedReader(new StringReader(problem.getVisibleInput()));
-                     BufferedReader expectedReader = new BufferedReader(new StringReader(problem.getVisibleOutput()))) {
-                     
-                     String inputLine;
-                     String expectedLine;
-                     int lineNumber = 1;
-                     int paramCount = getParameterCount(problem.getParameters());
+                List<String> inputs = List.of(problem.getVisibleInput().split("\\R"));
+                List<String> expecteds = List.of(problem.getVisibleOutput().split("\\R"));
+                
+                List<String> results = runBatch(directory, inputs);
+                
+                for (int i = 0; i < inputs.size(); i++) {
+                    String input = inputs.get(i).trim();
+                    if (input.isEmpty()) continue;
+                    
+                    lastExpected = (i < expecteds.size()) ? expecteds.get(i).trim() : "";
+                    lastOutput = (i < results.size()) ? results.get(i) : "ERROR: No output";
+                    
+                    if (lastOutput.startsWith("RUNTIME_ERROR:")) {
+                        return SubmissionResponse.builder()
+                            .success(false)
+                            .message(lastOutput.replace("RUNTIME_ERROR:", "").trim())
+                            .build();
+                    }
 
-                     while ((inputLine = inputReader.readLine()) != null) {
-                         expectedLine = expectedReader.readLine();
-                         // We no longer skip empty lines to support empty arrays/strings
-                         if (expectedLine == null) expectedLine = "";
-
-                         lastExpected = expectedLine.trim();
-                         lastOutput = runTestCase(directory, inputLine.trim(), paramCount);
-                         
-                         if (lastOutput.startsWith("ERROR:")) {
-                             return SubmissionResponse.builder()
-                                 .success(false)
-                                 .message(lastOutput.replace("ERROR:", "").trim())
-                                 .build();
-                         }
-
-                         if (!lastOutput.equals(lastExpected)) {
-                              return SubmissionResponse.builder()
-                                 .success(false)
-                                 .message("Wrong Answer on Visible Test Case (Line " + lineNumber + ")")
-                                 .output(lastOutput)
-                                 .expectedOutput(lastExpected)
-                                 .build();
-                         }
-                         lineNumber++;
-                     }
+                    if (!lastOutput.equals(lastExpected)) {
+                         return SubmissionResponse.builder()
+                            .success(false)
+                            .message("Wrong Answer on Visible Test Case (Line " + (i+1) + ")")
+                            .output(lastOutput)
+                            .expectedOutput(lastExpected)
+                            .build();
+                    }
                 }
             }
 
@@ -146,38 +140,41 @@ public class CodeExecutionService {
                       String inputKey = tc.getInput();
                       String outputKey = tc.getExpectedOutput();
                       
+                      List<String> inputs;
+                      List<String> expecteds;
+                      
                       try (BufferedReader inputReader = new BufferedReader(new InputStreamReader(fileStorageService.getFileInputStream(inputKey, true)));
                            BufferedReader expectedReader = new BufferedReader(new InputStreamReader(fileStorageService.getFileInputStream(outputKey, false)))) {
-                           
-                           String inputLine;
-                           String expectedLine;
-                           int lineNumber = 1;
-                           int paramCount = getParameterCount(problem.getParameters());
+                           inputs = inputReader.lines().collect(Collectors.toList());
+                           expecteds = expectedReader.lines().collect(Collectors.toList());
+                      }
 
-                           while ((inputLine = inputReader.readLine()) != null) {
-                               expectedLine = expectedReader.readLine();
-                               // No longer skipping empty lines
-                               if (expectedLine == null) expectedLine = "";
-                               
-                               String outputContent = runTestCase(directory, inputLine.trim(), paramCount);
-                               
-                               if (outputContent.startsWith("ERROR:")) {
-                                     return SubmissionResponse.builder()
-                                         .success(false)
-                                         .message(outputContent.replace("ERROR:", "").trim())
-                                         .build();
-                               }
-                               
-                               if (!outputContent.equals(expectedLine.trim())) {
-                                    return SubmissionResponse.builder()
-                                         .success(false)
-                                         .message("Wrong Answer on Hidden Test Case (Line " + lineNumber + ")")
-                                         .output(outputContent)
-                                         .expectedOutput("Hidden")
-                                         .build();
-                               }
-                               lineNumber++;
-                           }
+                      List<String> results = runBatch(directory, inputs);
+                      
+                      for (int i = 0; i < inputs.size(); i++) {
+                          String input = inputs.get(i).trim();
+                          if (input.isEmpty()) continue;
+                          
+                          String expected = (i < expecteds.size()) ? expecteds.get(i).trim() : "";
+                          String result = (i < results.size()) ? results.get(i) : "ERROR: No output";
+
+                          if (result.startsWith("RUNTIME_ERROR:")) {
+                               return SubmissionResponse.builder()
+                                   .success(false)
+                                   .message(result.replace("RUNTIME_ERROR:", "").trim())
+                                   .build();
+                          }
+                          
+                          if (!result.equals(expected)) {
+                               return SubmissionResponse.builder()
+                                    .success(false)
+                                    .message("Wrong Answer on Hidden Test Case")
+                                    .output(result)
+                                    .expectedOutput("Hidden")
+                                    .build();
+                          }
+                          lastOutput = result; // Keep track of last output for final response
+                          lastExpected = expected;
                       }
                  }
             }
@@ -203,85 +200,58 @@ public class CodeExecutionService {
         }
     }
 
-    private String runTestCase(File directory, String input, int paramCount) throws IOException, InterruptedException {
-        List<String> inputArgs = new java.util.ArrayList<>();
-        
-        if (paramCount <= 1) {
-            inputArgs.add(input);
-        } else {
-            // Smart split that respects [] and ""
-            StringBuilder currentArg = new StringBuilder();
-            boolean inBrackets = false;
-            boolean inQuotes = false;
-            
-            for (int i = 0; i < input.length(); i++) {
-                char ch = input.charAt(i);
-                if (ch == '[' && !inQuotes) inBrackets = true;
-                if (ch == ']' && !inQuotes) inBrackets = false;
-                if (ch == '"' && !inBrackets) inQuotes = !inQuotes;
-                
-                if (Character.isWhitespace(ch) && !inBrackets && !inQuotes) {
-                    if (currentArg.length() > 0) {
-                        inputArgs.add(currentArg.toString());
-                        currentArg.setLength(0);
-                    }
-                } else {
-                    currentArg.append(ch);
-                }
-            }
-            if (currentArg.length() > 0) {
-                inputArgs.add(currentArg.toString());
-            }
-        }
-        
-        ProcessBuilder runProcessBuilder = new ProcessBuilder("java", "-cp", ".", "Main");
-        runProcessBuilder.command().addAll(inputArgs);
-        runProcessBuilder.directory(directory);
-        
-        Process runProcess = runProcessBuilder.start();
-
-        boolean finished = runProcess.waitFor(2, TimeUnit.SECONDS); 
-        if (!finished) {
-            runProcess.destroy();
-            return "ERROR: Time Limit Exceeded";
-        }
-
-        if (runProcess.exitValue() != 0) {
-             String errorOutput;
-             try (BufferedReader reader = new BufferedReader(new InputStreamReader(runProcess.getErrorStream()))) {
-                 errorOutput = reader.lines().collect(Collectors.joining("\n")).trim();
-             }
-             return "ERROR: Runtime Error: " + errorOutput;
-        }
-
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(runProcess.getInputStream()))) {
-            return reader.lines().collect(Collectors.joining("\n")).trim();
-        }
-    }
-
-    private int getParameterCount(String paramsJson) {
-        if (paramsJson == null || paramsJson.isEmpty()) return 0;
-        try {
-            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-            List<?> list = mapper.readValue(paramsJson, List.class);
-            return list.size();
-        } catch (Exception e) {
-            return 0;
-        }
-    }
-
-    @Transactional
     private void updateUserProgress(String email) {
+        // Optimization: Use the existing findByUserEmail which has FETCH JOIN
         UserProgress progress = userProgressRepository.findByUserEmail(email)
                 .orElseGet(() -> {
                     User user = userRepository.findByEmail(email)
                             .orElseThrow(() -> new RuntimeException("User not found"));
-                    return new UserProgress(null, user, 0, 0);
+                    UserProgress newProgress = new UserProgress(null, user, 0, 0);
+                    return userProgressRepository.save(newProgress);
                 });
         
         progress.setProblemsSolved(progress.getProblemsSolved() + 1);
         userProgressRepository.save(progress);
     }
+
+    private List<String> runBatch(File directory, List<String> inputs) throws IOException, InterruptedException {
+        ProcessBuilder runProcessBuilder = new ProcessBuilder("java", "-cp", ".", "Main");
+        runProcessBuilder.directory(directory);
+        Process runProcess = runProcessBuilder.start();
+
+        // Write all inputs to stdin
+        try (PrintWriter writer = new PrintWriter(new OutputStreamWriter(runProcess.getOutputStream()))) {
+            for (String input : inputs) {
+                writer.println(input);
+            }
+            writer.flush();
+        }
+
+        List<String> results = new java.util.ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(runProcess.getInputStream()))) {
+            StringBuilder currentCase = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.equals("---CASE_END---")) {
+                    results.add(currentCase.toString().trim());
+                    currentCase.setLength(0);
+                } else {
+                    if (currentCase.length() > 0) currentCase.append("\n");
+                    currentCase.append(line);
+                }
+            }
+        }
+
+        // Wait with timeout
+        boolean finished = runProcess.waitFor(10, TimeUnit.SECONDS); 
+        if (!finished) {
+            runProcess.destroy();
+            results.add("RUNTIME_ERROR: Time Limit Exceeded");
+        }
+        
+        return results;
+    }
+
 
     private void deleteDirectory(File directoryToBeDeleted) {
         if (directoryToBeDeleted == null || !directoryToBeDeleted.exists()) return;
