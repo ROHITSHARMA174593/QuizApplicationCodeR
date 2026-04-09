@@ -28,10 +28,12 @@ public class QuizService {
         return questionRepository.findByCategoryIdAndDifficulty(categoryId, difficulty);
     }
 
+    @SuppressWarnings("null")
     public SkillCategory createCategory(SkillCategory category) {
         return categoryRepository.save(category);
     }
 
+    @SuppressWarnings("null")
     public QuizQuestion createQuestion(QuizQuestion question) {
         return questionRepository.save(question);
     }

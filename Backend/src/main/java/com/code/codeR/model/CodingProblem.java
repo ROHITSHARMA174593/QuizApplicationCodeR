@@ -38,6 +38,12 @@ public class CodingProblem {
     @Column(columnDefinition = "TEXT")
     private String parameters; // JSON format e.g. [{"type":"int","name":"a"}, ...]
 
+    @Column
+    private String type; // array, string, linkedlist
+
+    @Column
+    private String subtype; // singly, doubly, circular, doubly_circular
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "topic_id")
     private Topic topic;

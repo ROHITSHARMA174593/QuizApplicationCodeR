@@ -20,6 +20,7 @@ public class TopicService {
         return topicRepository.findByCategoryId(categoryId);
     }
 
+    @SuppressWarnings("null")
     public Topic createTopic(Topic topic) {
         // Ensure category is fetched or valid
         if (topic.getCategory() != null && topic.getCategory().getId() != null) {

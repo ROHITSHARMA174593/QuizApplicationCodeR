@@ -48,4 +48,6 @@ export interface CodingProblem {
   parameters?: string; // JSON string
   visibleInput?: string;
   visibleOutput?: string;
+  solved?: boolean;
+  categoryName?: string;
 }

@@ -25,6 +25,7 @@ public class TestcaseService {
     // but direct repository is better for delete/find operations on TestCases.
     private final com.code.codeR.repository.TestCaseRepository testCaseRepository; 
 
+    @SuppressWarnings("null")
     public TestCase addTestCase(Long problemId, MultipartFile inputFile, MultipartFile outputFile) throws IOException {
         CodingProblem problem = codingProblemRepository.findById(problemId)
                 .orElseThrow(() -> new RuntimeException("Problem not found with id: " + problemId));
@@ -40,6 +41,7 @@ public class TestcaseService {
         return testCaseRepository.save(testCase);
     }
 
+    @SuppressWarnings("null")
     public TestCase addHiddenTestCase(Long problemId, MultipartFile input, MultipartFile output) throws IOException {
         CodingProblem problem = codingProblemRepository.findById(problemId)
                 .orElseThrow(() -> new RuntimeException("Problem not found"));
@@ -60,6 +62,7 @@ public class TestcaseService {
     }
     
     @Transactional(readOnly = true)
+    @SuppressWarnings("null")
     public List<TestCase> getTestCasesByProblemId(Long problemId) {
        CodingProblem problem = codingProblemRepository.findById(problemId)
                 .orElseThrow(() -> new RuntimeException("Problem not found with id: " + problemId));
@@ -67,6 +70,7 @@ public class TestcaseService {
     }
     
     @Transactional(readOnly = true)
+    @SuppressWarnings("null")
     public InputStream getTestCaseFileStream(Long testCaseId, boolean isInput) {
         TestCase testCase = testCaseRepository.findById(testCaseId)
                 .orElseThrow(() -> new RuntimeException("Testcase not found"));
@@ -80,6 +84,7 @@ public class TestcaseService {
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public void deleteTestCase(Long testCaseId) {
         TestCase testCase = testCaseRepository.findById(testCaseId)
                 .orElseThrow(() -> new RuntimeException("Testcase not found"));
@@ -96,6 +101,7 @@ public class TestcaseService {
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public void deleteAllTestCases(Long problemId) {
         // Fetch all test cases in one go for file deletion
         List<TestCase> testCases = testCaseRepository.findByCodingProblemId(problemId);
@@ -114,6 +120,7 @@ public class TestcaseService {
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public TestCase replaceTestCase(Long problemId, MultipartFile input, MultipartFile output) throws IOException {
         deleteAllTestCases(problemId);
         return addTestCase(problemId, input, output);

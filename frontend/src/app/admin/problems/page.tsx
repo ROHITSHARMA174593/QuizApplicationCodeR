@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Edit, Trash2, Search, ArrowLeft } from "lucide-react";
+import { toast } from "sonner";
 import api from "@/services/api";
 import { CodingProblem } from "@/types";
 import { Button } from "@/components/ui/Button";
@@ -36,10 +37,10 @@ export default function ProblemListPage() {
     try {
       await api.delete(`/problems/${id}`);
       setProblems(prev => prev.filter(p => p.id !== id));
-      alert("Problem deleted successfully");
+      toast.success("Problem deleted successfully");
     } catch (error) {
       console.error("Failed to delete problem", error);
-      alert("Failed to delete problem");
+      toast.error("Failed to delete problem");
     }
   };
 

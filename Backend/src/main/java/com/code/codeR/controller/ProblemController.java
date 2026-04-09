@@ -21,8 +21,9 @@ public class ProblemController {
     private final com.code.codeR.service.CodeExecutionService codeExecutionService;
 
     @GetMapping
-    public ResponseEntity<List<CodingProblem>> getAllProblems() {
-        return ResponseEntity.ok(problemService.getAllProblems());
+    public ResponseEntity<List<com.code.codeR.dto.ProblemDTO>> getAllProblems(Principal principal) {
+        String email = (principal != null) ? principal.getName() : null;
+        return ResponseEntity.ok(problemService.getAllProblemsWithStatus(email));
     }
 
     @GetMapping("/{id}")
@@ -43,8 +44,9 @@ public class ProblemController {
     }
 
     @GetMapping("/category/{categoryId}")
-    public ResponseEntity<List<CodingProblem>> getProblemsByCategory(@PathVariable Long categoryId) {
-        return ResponseEntity.ok(problemService.getProblemsByCategory(categoryId));
+    public ResponseEntity<List<com.code.codeR.dto.ProblemDTO>> getProblemsByCategory(@PathVariable Long categoryId, Principal principal) {
+        String email = (principal != null) ? principal.getName() : null;
+        return ResponseEntity.ok(problemService.getProblemsByCategoryWithStatus(categoryId, email));
     }
 
     @PostMapping

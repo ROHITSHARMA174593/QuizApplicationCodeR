@@ -45,7 +45,20 @@ export default function ProblemSolvePage({ params }: { params: Promise<{ id: str
         const paramStr = params.map((p: any) => `${p.type} ${p.name}`).join(", ");
         const returnVal = res.data.returnType === "void" ? "" : res.data.returnType === "int" ? "0" : "null";
 
-        const starterCode = `// Write your solution for: ${res.data.title}
+        let listNodeComment = "";
+        if (res.data.type === "linkedlist") {
+            listNodeComment = `/**
+ * Definition for singly-linked list.
+ * public class ListNode {
+ *     int val;      // You can also use 'data'
+ *     int data;     // Alias for val
+ *     ListNode next;
+ ${res.data.subtype && res.data.subtype.includes("doubly") ? " *     ListNode prev;\n " : ""}*     ListNode(int x) { val = x; data = x; }
+ * }
+ */\n`;
+        }
+
+        const starterCode = `${listNodeComment}// Write your solution for: ${res.data.title}
 class Solution {
     public ${res.data.returnType || "void"} ${res.data.methodName || "solve"}(${paramStr}) {
         // Your code here

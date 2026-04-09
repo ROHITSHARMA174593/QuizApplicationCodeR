@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { toast } from "sonner";
 import api from "@/services/api";
 
 interface Category {
@@ -57,7 +58,7 @@ export default function QuizManagement({ categories }: QuizManagementProps) {
             category: { id: parseInt(selectedCategory) },
             topic: { id: parseInt(selectedTopic) },
         });
-        alert("Question added successfully!");
+        toast.success("Question added successfully!");
         setQuestionData({
             question: "",
             optionA: "",
@@ -71,7 +72,7 @@ export default function QuizManagement({ categories }: QuizManagementProps) {
         setSelectedTopic("");
     } catch (error) {
         console.error("Failed to add question:", error);
-        alert("Failed to add question");
+        toast.error("Failed to add question");
     }
   };
 

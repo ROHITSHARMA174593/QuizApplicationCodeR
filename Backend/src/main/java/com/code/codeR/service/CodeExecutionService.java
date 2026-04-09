@@ -180,7 +180,7 @@ public class CodeExecutionService {
             }
 
             if (userEmail != null) {
-                updateUserProgress(userEmail);
+                updateUserProgress(userEmail, problem);
             }
 
             return SubmissionResponse.builder()
@@ -200,18 +200,23 @@ public class CodeExecutionService {
         }
     }
 
-    private void updateUserProgress(String email) {
-        // Optimization: Use the existing findByUserEmail which has FETCH JOIN
+    private void updateUserProgress(String email, CodingProblem problem) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        // Update total solved count
         UserProgress progress = userProgressRepository.findByUserEmail(email)
                 .orElseGet(() -> {
-                    User user = userRepository.findByEmail(email)
-                            .orElseThrow(() -> new RuntimeException("User not found"));
                     UserProgress newProgress = new UserProgress(null, user, 0, 0);
                     return userProgressRepository.save(newProgress);
                 });
         
         progress.setProblemsSolved(progress.getProblemsSolved() + 1);
         userProgressRepository.save(progress);
+
+        // Record the specific problem as solved
+        user.getSolvedProblems().add(problem);
+        userRepository.save(user);
     }
 
     private List<String> runBatch(File directory, List<String> inputs) throws IOException, InterruptedException {

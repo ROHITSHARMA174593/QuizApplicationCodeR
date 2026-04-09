@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { ArrowLeft, Save, Upload, AlertCircle, CheckCircle } from "lucide-react";
+import { toast } from "sonner";
 import api from "@/services/api";
 import { CodingProblem } from "@/types";
 import { Button } from "@/components/ui/Button";
@@ -31,7 +32,7 @@ export default function EditProblemPage() {
       setProblem(res.data);
     } catch (error) {
       console.error("Failed to fetch problem", error);
-      alert("Failed to load problem details");
+      toast.error("Failed to load problem details");
     } finally {
       setLoading(false);
     }
@@ -54,11 +55,11 @@ export default function EditProblemPage() {
             });
         }
 
-        alert("Problem updated successfully!");
+        toast.success("Problem updated successfully!");
         router.push("/admin/problems");
     } catch (error) {
         console.error("Failed to update problem", error);
-        alert("Failed to update problem");
+        toast.error("Failed to update problem");
     } finally {
         setSaving(false);
     }

@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { FileText, Upload, Code } from "lucide-react";
+import { toast } from "sonner";
 import api from "@/services/api";
 
 interface Category {
@@ -36,11 +37,23 @@ export default function ProblemManagement({ categories, stats }: ProblemManageme
     returnType: "int",
     visibleInput: "",
     visibleOutput: "",
+    type: "array",
+    subtype: "",
   });
 
   const [hiddenFiles, setHiddenFiles] = useState<{ input: File | null; output: File | null }>({ input: null, output: null });
   const [parameters, setParameters] = useState<{ type: string; name: string }[]>([]);
   const [newParam, setNewParam] = useState({ type: "int", name: "" });
+
+  useEffect(() => {
+    // Auto-select DSA category on load
+    if (categories.length > 0 && !selectedCategory) {
+      const dsaCategory = categories.find(c => c.name === "DSA");
+      if (dsaCategory) {
+        setSelectedCategory(dsaCategory.id.toString());
+      }
+    }
+  }, [categories, selectedCategory]);
 
   useEffect(() => {
     if (selectedCategory) {
@@ -74,7 +87,18 @@ export default function ProblemManagement({ categories, stats }: ProblemManageme
     setHiddenFiles(prev => ({ ...prev, [type]: file }));
   };
 
-  const generatedBoilerplate = `class Solution {
+  const isLinkedList = topics.find(t => t.id === parseInt(selectedTopic))?.name.toLowerCase().includes("linkedlist");
+  
+  const listNodeComment = isLinkedList ? `/**
+ * Definition for ListNode:
+ * public class ListNode {
+ *     int val;
+ *     int data;
+ *     ListNode next;
+ ${problemData.subtype && problemData.subtype.includes("doubly") ? " *     ListNode prev;\n " : ""}* }
+ */\n` : "";
+
+  const generatedBoilerplate = `${listNodeComment}class Solution {
     public ${problemData.returnType} ${problemData.methodName || "methodName"}(${parameters.map(p => `${p.type} ${p.name}`).join(", ")}) {
         // Write your code here
         return ${problemData.returnType === "void" ? "" : problemData.returnType === "int" ? "0" : "null"};
@@ -84,11 +108,20 @@ export default function ProblemManagement({ categories, stats }: ProblemManageme
   const handleAddProblem = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // Derive type and subtype based on topic name
+      const selectedTopicObj = topics.find(t => t.id === parseInt(selectedTopic));
+      const isLinkedList = selectedTopicObj?.name.toLowerCase().includes("linkedlist");
+      
+      const type = isLinkedList ? "linkedlist" : "array";
+      const subtype = isLinkedList ? problemData.subtype : null;
+
       const problemRes = await api.post("/problems", {
         ...problemData,
         parameters: JSON.stringify(parameters),
         category: { id: parseInt(selectedCategory) },
         topic: { id: parseInt(selectedTopic) },
+        type,
+        subtype,
       });
 
       const problemId = problemRes.data.id;
@@ -103,7 +136,7 @@ export default function ProblemManagement({ categories, stats }: ProblemManageme
         });
       }
 
-      alert("Problem added successfully!");
+      toast.success("Problem added successfully!");
       setProblemData({
         title: "",
         description: "",
@@ -113,6 +146,8 @@ export default function ProblemManagement({ categories, stats }: ProblemManageme
         returnType: "int",
         visibleInput: "",
         visibleOutput: "",
+        type: "array",
+        subtype: "",
       });
       setHiddenFiles({ input: null, output: null });
       setParameters([]);
@@ -120,7 +155,7 @@ export default function ProblemManagement({ categories, stats }: ProblemManageme
       setSelectedTopic("");
     } catch (error) {
       console.error("Failed to add problem:", error);
-      alert("Failed to add problem");
+      toast.error("Failed to add problem");
     }
   };
 
@@ -142,12 +177,14 @@ export default function ProblemManagement({ categories, stats }: ProblemManageme
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 required
               >
-                <option value="" className="bg-zinc-900 text-white">Select a language/category...</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id} className="bg-zinc-900 text-white">
-                    {cat.name}
-                  </option>
-                ))}
+                <option value="" className="bg-zinc-900 text-white">Select a category...</option>
+                {categories
+                  .filter(cat => cat.name === "DSA") // Only show DSA as per request
+                  .map((cat) => (
+                    <option key={cat.id} value={cat.id} className="bg-zinc-900 text-white">
+                      {cat.name}
+                    </option>
+                  ))}
               </select>
             </div>
 
@@ -208,6 +245,31 @@ export default function ProblemManagement({ categories, stats }: ProblemManageme
                 <option value="Hard" className="bg-zinc-900 text-white">Hard</option>
               </select>
             </div>
+
+            {topics.find(t => t.id === parseInt(selectedTopic))?.name.toLowerCase().includes("linkedlist") && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-muted-foreground">
+                    LinkedList Subtype
+                  </label>
+                  <select
+                    className="flex h-10 w-full rounded-md border border-input bg-zinc-900 text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    value={problemData.subtype}
+                    onChange={(e) =>
+                      setProblemData({
+                        ...problemData,
+                        subtype: e.target.value,
+                      })
+                    }
+                    required
+                  >
+                    <option value="" className="bg-zinc-900 text-white">Select subtype...</option>
+                    <option value="singly" className="bg-zinc-900 text-white">Singly</option>
+                    <option value="doubly" className="bg-zinc-900 text-white">Doubly</option>
+                    <option value="circular" className="bg-zinc-900 text-white">Circular</option>
+                    <option value="doubly_circular" className="bg-zinc-900 text-white">Doubly Circular</option>
+                  </select>
+                </div>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -266,6 +328,7 @@ export default function ProblemManagement({ categories, stats }: ProblemManageme
                         <option value="String" className="bg-zinc-900 text-white">String</option>
                         <option value="int[]" className="bg-zinc-900 text-white">int[]</option>
                         <option value="boolean" className="bg-zinc-900 text-white">boolean</option>
+                        <option value="ListNode" className="bg-zinc-900 text-white">ListNode</option>
                         <option value="void" className="bg-zinc-900 text-white">void</option>
                     </select>
                 </div>
@@ -283,6 +346,7 @@ export default function ProblemManagement({ categories, stats }: ProblemManageme
                         <option value="String" className="bg-zinc-900 text-white">String</option>
                         <option value="int[]" className="bg-zinc-900 text-white">int[]</option>
                         <option value="boolean" className="bg-zinc-900 text-white">boolean</option>
+                        <option value="ListNode" className="bg-zinc-900 text-white">ListNode</option>
                     </select>
                     <Input 
                         placeholder="Parameter Name (e.g. nums)"

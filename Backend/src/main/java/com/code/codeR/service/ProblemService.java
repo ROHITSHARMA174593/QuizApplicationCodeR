@@ -14,6 +14,30 @@ public class ProblemService {
 
     private final CodingProblemRepository problemRepository;
     private final TestcaseService testcaseService;
+    private final com.code.codeR.repository.UserRepository userRepository;
+
+    public List<com.code.codeR.dto.ProblemDTO> getAllProblemsWithStatus(String email) {
+        List<CodingProblem> problems = problemRepository.findAll();
+        return mapToDTOs(problems, email);
+    }
+
+    public List<com.code.codeR.dto.ProblemDTO> getProblemsByCategoryWithStatus(Long categoryId, String email) {
+        List<CodingProblem> problems = problemRepository.findByCategoryId(categoryId);
+        return mapToDTOs(problems, email);
+    }
+
+    private List<com.code.codeR.dto.ProblemDTO> mapToDTOs(List<CodingProblem> problems, String email) {
+        java.util.Set<Long> solvedProblemIds = new java.util.HashSet<>();
+        if (email != null) {
+            userRepository.findByEmail(email).ifPresent(user -> {
+                user.getSolvedProblems().forEach(p -> solvedProblemIds.add(p.getId()));
+            });
+        }
+        
+        return problems.stream()
+                .map(p -> com.code.codeR.dto.ProblemDTO.fromEntity(p, solvedProblemIds.contains(p.getId())))
+                .collect(java.util.stream.Collectors.toList());
+    }
 
     public List<CodingProblem> getProblemsByCategory(Long categoryId) {
         return problemRepository.findByCategoryId(categoryId);
@@ -23,6 +47,7 @@ public class ProblemService {
         return problemRepository.findAll();
     }
 
+    @SuppressWarnings("null")
     public CodingProblem getProblemById(Long id) {
         return problemRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Problem not found with id: " + id));
@@ -54,11 +79,14 @@ public class ProblemService {
         problem.setVisibleOutput(problemDetails.getVisibleOutput());
         problem.setCategory(problemDetails.getCategory());
         problem.setTopic(problemDetails.getTopic());
+        problem.setType(problemDetails.getType());
+        problem.setSubtype(problemDetails.getSubtype());
         
         return problemRepository.save(problem);
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public void deleteProblem(Long id) {
         // Use optimized batch deletion for test cases
         testcaseService.deleteAllTestCases(id);

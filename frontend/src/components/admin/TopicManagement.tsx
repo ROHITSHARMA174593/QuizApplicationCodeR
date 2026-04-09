@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { toast } from "sonner";
 import api from "@/services/api";
 
 interface Category {
@@ -28,11 +29,11 @@ export default function TopicManagement({ categories }: TopicManagementProps) {
         description: topicData.description,
         category: { id: parseInt(topicData.categoryId) },
       });
-      alert("Topic added successfully!");
+      toast.success("Topic added successfully!");
       setTopicData({ name: "", description: "", categoryId: "" });
     } catch (error) {
       console.error("Failed to add topic:", error);
-      alert("Failed to add topic");
+      toast.error("Failed to add topic");
     }
   };
 

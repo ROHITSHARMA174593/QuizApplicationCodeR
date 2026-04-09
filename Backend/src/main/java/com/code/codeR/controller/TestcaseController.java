@@ -50,6 +50,7 @@ public class TestcaseController {
 
     // Stream Input File
     @GetMapping("/{testCaseId}/input")
+    @SuppressWarnings("null")
     public ResponseEntity<InputStreamResource> streamInputFile(@PathVariable Long testCaseId) {
         InputStream inputStream = testcaseService.getTestCaseFileStream(testCaseId, true);
         return ResponseEntity.ok()
@@ -60,6 +61,7 @@ public class TestcaseController {
 
     // Stream Output File
     @GetMapping("/{testCaseId}/output")
+    @SuppressWarnings("null")
     public ResponseEntity<InputStreamResource> streamOutputFile(@PathVariable Long testCaseId) {
         InputStream inputStream = testcaseService.getTestCaseFileStream(testCaseId, false);
         return ResponseEntity.ok()

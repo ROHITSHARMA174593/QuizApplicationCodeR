@@ -32,6 +32,7 @@ public class DashboardService {
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public UserProgress updateProgress(String email, int quizScoreToAdd, boolean problemSolved) {
         UserProgress progress = getUserProgress(email);
         

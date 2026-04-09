@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { toast } from "sonner";
 import api from "@/services/api";
 
 interface Category {
@@ -25,12 +26,12 @@ export default function CategoryManagement({ categories, onRefresh }: CategoryMa
     e.preventDefault();
     try {
       await api.post("/quiz/categories", categoryData);
-      alert("Category added successfully!");
+      toast.success("Category added successfully!");
       setCategoryData({ name: "", description: "" });
       onRefresh(); // Refresh total list
     } catch (error) {
       console.error("Failed to add category:", error);
-      alert("Failed to add category");
+      toast.error("Failed to add category");
     }
   };
 

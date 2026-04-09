@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ChevronRight, Code, BookOpen, Clock, AlertCircle } from "lucide-react";
+import { ChevronRight, Code, BookOpen, Clock, AlertCircle, CheckCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import api from "@/services/api";
@@ -79,6 +79,11 @@ export default function ProblemsPage({ params }: { params?: Promise<{ categoryId
                         'bg-green-500/10 text-green-600 border-green-500/20'}`}>
                       {problem.difficulty}
                     </span>
+                    {problem.solved && (
+                      <span className="flex items-center gap-1.5 bg-green-500/10 text-green-500 border border-green-500/20 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                        <CheckCircle className="w-3 h-3" /> Solved
+                      </span>
+                    )}
                   </div>
                   <p className="text-muted-foreground line-clamp-2 text-sm max-w-2xl">
                     {problem.description}
