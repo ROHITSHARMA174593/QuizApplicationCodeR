@@ -1,12 +1,15 @@
 package com.code.codeR.controller;
 
 import com.code.codeR.dto.SubmissionRequest;
-import com.code.codeR.dto.SubmissionResponse;
 import com.code.codeR.model.CodingProblem;
 import com.code.codeR.service.ProblemService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
+import java.io.IOException;
 
 import java.security.Principal;
 import java.util.List;
@@ -31,16 +34,68 @@ public class ProblemController {
         return ResponseEntity.ok(problemService.getProblemById(id));
     }
 
-    @PostMapping("/{id}/submit")
-    public ResponseEntity<SubmissionResponse> submitProblem(@PathVariable Long id, @RequestBody SubmissionRequest request, Principal principal) {
+    @PostMapping(value = "/{id}/submit-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter submitProblemStream(@PathVariable Long id, @RequestBody SubmissionRequest request, Principal principal) {
         String email = (principal != null) ? principal.getName() : null;
-        return ResponseEntity.ok(codeExecutionService.submitCode(id, request.getCode(), email));
+        SseEmitter emitter = new SseEmitter(120000L); // 2 mins timeout
+        
+        Thread executionThread = new Thread(() -> {
+            try {
+                codeExecutionService.submitCodeStreaming(id, request.getCode(), email, response -> {
+                    try {
+                        if (response != null) {
+                            emitter.send(response);
+                        }
+                    } catch (IOException e) {
+                        // Client closed connection
+                    }
+                });
+                emitter.complete();
+            } catch (Exception e) {
+                emitter.completeWithError(e);
+            }
+        });
+
+        emitter.onTimeout(() -> {
+            emitter.complete();
+            executionThread.interrupt();
+        });
+        emitter.onCompletion(() -> executionThread.interrupt());
+
+        executionThread.start();
+        return emitter;
     }
 
-    @PostMapping("/{id}/run")
-    public ResponseEntity<SubmissionResponse> runProblem(@PathVariable Long id, @RequestBody SubmissionRequest request, Principal principal) {
+    @PostMapping(value = "/{id}/run-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter runProblemStream(@PathVariable Long id, @RequestBody SubmissionRequest request, Principal principal) {
         String email = (principal != null) ? principal.getName() : null;
-        return ResponseEntity.ok(codeExecutionService.runVisibleTest(id, request.getCode(), email));
+        SseEmitter emitter = new SseEmitter(60000L); // 1 min timeout
+        
+        Thread executionThread = new Thread(() -> {
+            try {
+                codeExecutionService.runVisibleTestStreaming(id, request.getCode(), email, response -> {
+                    try {
+                        if (response != null) {
+                            emitter.send(response);
+                        }
+                    } catch (IOException e) {
+                        // Client closed connection
+                    }
+                });
+                emitter.complete();
+            } catch (Exception e) {
+                emitter.completeWithError(e);
+            }
+        });
+
+        emitter.onTimeout(() -> {
+            emitter.complete();
+            executionThread.interrupt();
+        });
+        emitter.onCompletion(() -> executionThread.interrupt());
+
+        executionThread.start();
+        return emitter;
     }
 
     @GetMapping("/category/{categoryId}")

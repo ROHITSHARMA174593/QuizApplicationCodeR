@@ -9,8 +9,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.List;
 
 @Service
@@ -33,12 +35,37 @@ public class TestcaseService {
         String inputKey = fileStorageService.saveInputFile(inputFile);
         String outputKey = fileStorageService.saveOutputFile(outputFile);
 
+        // Automatically extract first 2 lines for visible test cases
+        String visibleInput = extractFirstTwoLines(inputFile);
+        String visibleOutput = extractFirstTwoLines(outputFile);
+        
+        problem.setVisibleInput(visibleInput);
+        problem.setVisibleOutput(visibleOutput);
+        codingProblemRepository.save(problem);
+
         TestCase testCase = new TestCase();
         testCase.setInput(inputKey);  // Storing local file name
         testCase.setExpectedOutput(outputKey); // Storing local file name
         testCase.setCodingProblem(problem);
         
         return testCaseRepository.save(testCase);
+    }
+
+    private String extractFirstTwoLines(MultipartFile file) {
+        if (file == null || file.isEmpty()) return "";
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream()))) {
+            StringBuilder sb = new StringBuilder();
+            String line;
+            int count = 0;
+            while ((line = reader.readLine()) != null && count < 2) {
+                if (count > 0) sb.append("\n");
+                sb.append(line);
+                count++;
+            }
+            return sb.toString();
+        } catch (IOException e) {
+            return "";
+        }
     }
 
     @SuppressWarnings("null")
@@ -52,6 +79,14 @@ public class TestcaseService {
 
         String inputKey = fileStorageService.saveInputFile(input);
         String outputKey = fileStorageService.saveOutputFile(output);
+
+        // Automatically extract first 2 lines for visible test cases
+        String visibleInput = extractFirstTwoLines(input);
+        String visibleOutput = extractFirstTwoLines(output);
+        
+        problem.setVisibleInput(visibleInput);
+        problem.setVisibleOutput(visibleOutput);
+        codingProblemRepository.save(problem);
 
         TestCase testCase = new TestCase();
         testCase.setInput(inputKey); 
@@ -101,7 +136,7 @@ public class TestcaseService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
+    // @SuppressWarnings("null")
     public void deleteAllTestCases(Long problemId) {
         // Fetch all test cases in one go for file deletion
         List<TestCase> testCases = testCaseRepository.findByCodingProblemId(problemId);
@@ -120,7 +155,7 @@ public class TestcaseService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
+    // @SuppressWarnings("null")
     public TestCase replaceTestCase(Long problemId, MultipartFile input, MultipartFile output) throws IOException {
         deleteAllTestCases(problemId);
         return addTestCase(problemId, input, output);

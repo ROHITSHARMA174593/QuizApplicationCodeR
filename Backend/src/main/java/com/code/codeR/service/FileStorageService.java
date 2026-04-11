@@ -16,17 +16,24 @@ import java.util.UUID;
 @Service
 public class FileStorageService {
 
-    @Value("${storage.local.input-dir:storage/input}")
+    @Value("${storage.local.input-dir:Storage/input}")
     private String inputDir;
 
-    @Value("${storage.local.output-dir:storage/output}")
+    @Value("${storage.local.output-dir:Storage/output}")
     private String outputDir;
 
     @PostConstruct
     public void init() {
         try {
-            Files.createDirectories(Paths.get(inputDir));
-            Files.createDirectories(Paths.get(outputDir));
+            Path inputPath = Paths.get(inputDir).toAbsolutePath();
+            Path outputPath = Paths.get(outputDir).toAbsolutePath();
+            
+            Files.createDirectories(inputPath);
+            Files.createDirectories(outputPath);
+            
+            System.out.println("📂 Storage Initialized At:");
+            System.out.println("   Input:  " + inputPath);
+            System.out.println("   Output: " + outputPath);
         } catch (IOException e) {
             throw new RuntimeException("Could not create storage directories", e);
         }

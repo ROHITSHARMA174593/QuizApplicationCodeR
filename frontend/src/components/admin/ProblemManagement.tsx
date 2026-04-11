@@ -82,9 +82,23 @@ export default function ProblemManagement({ categories, stats }: ProblemManageme
     setParameters(parameters.filter((_, i) => i !== index));
   };
 
-  const handleHiddenFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: "input" | "output") => {
+  const handleHiddenFileChange = async (e: React.ChangeEvent<HTMLInputElement>, type: "input" | "output") => {
     const file = e.target.files?.[0] || null;
     setHiddenFiles(prev => ({ ...prev, [type]: file }));
+
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const text = event.target?.result as string;
+        const lines = text.split(/\r?\n/).filter(line => line.trim() !== "").slice(0, 2).join("\n");
+        
+        setProblemData(prev => ({
+          ...prev,
+          [type === "input" ? "visibleInput" : "visibleOutput"]: lines
+        }));
+      };
+      reader.readAsText(file);
+    }
   };
 
   const isLinkedList = topics.find(t => t.id === parseInt(selectedTopic))?.name.toLowerCase().includes("linkedlist");
@@ -141,11 +155,11 @@ export default function ProblemManagement({ categories, stats }: ProblemManageme
         title: "",
         description: "",
         difficulty: "Easy",
+        visibleInput: "",
+        visibleOutput: "",
         testCases: [],
         methodName: "",
         returnType: "int",
-        visibleInput: "",
-        visibleOutput: "",
         type: "array",
         subtype: "",
       });
@@ -377,37 +391,10 @@ export default function ProblemManagement({ categories, stats }: ProblemManageme
 
           <div className="space-y-4">
             <div className="space-y-6">
-              <div className="space-y-4 border p-4 rounded-md border-border/50">
-                <h3 className="text-sm font-medium text-white flex items-center gap-2">
-                   <FileText size={16} /> Visible Test Case (Stored in DB)
-                </h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-xs text-muted-foreground">Visible Input (Text)</label>
-                    <textarea
-                      placeholder="Enter visible input here (e.g. 1 2)"
-                      value={problemData.visibleInput || ""}
-                      onChange={(e) => setProblemData({...problemData, visibleInput: e.target.value})}
-                      className="flex min-h-25 w-full rounded-md border border-input bg-zinc-900 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-foreground font-mono"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs text-muted-foreground">Visible Output (Text)</label>
-                    <textarea
-                      placeholder="Enter visible output here (e.g. 3)"
-                      value={problemData.visibleOutput || ""}
-                      onChange={(e) => setProblemData({...problemData, visibleOutput: e.target.value})}
-                      className="flex min-h-25 w-full rounded-md border border-input bg-zinc-900 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-foreground font-mono"
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
 
               <div className="space-y-4 border p-4 rounded-md border-border/50">
                 <h3 className="text-sm font-medium text-white flex items-center gap-2">
-                   <Upload size={16} /> Hidden Test Cases (Stored in S3)
+                   <Upload size={16} /> Hidden Test Cases (Stored locally)
                 </h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -430,6 +417,35 @@ export default function ProblemManagement({ categories, stats }: ProblemManageme
                   </div>
                 </div>
               </div>
+
+              {/* Automatically generated Visible Test Cases Preview */}
+              {(problemData.visibleInput || problemData.visibleOutput) && (
+                <div className="space-y-4 border p-4 rounded-md border-primary/30 bg-primary/5">
+                  <h3 className="text-sm font-medium text-primary flex items-center gap-2">
+                    <FileText size={16} /> Visible Test Cases (Extracted from files)
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-xs text-muted-foreground">Visible Input (First 2 lines)</label>
+                      <textarea
+                        className="w-full h-20 rounded-md border border-input bg-zinc-900 text-white p-2 text-xs font-mono focus:outline-none"
+                        value={problemData.visibleInput}
+                        onChange={(e) => setProblemData({ ...problemData, visibleInput: e.target.value })}
+                        placeholder="Automatically populated from input.txt"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs text-muted-foreground">Visible Output (First 2 lines)</label>
+                      <textarea
+                        className="w-full h-20 rounded-md border border-input bg-zinc-900 text-white p-2 text-xs font-mono focus:outline-none"
+                        value={problemData.visibleOutput}
+                        onChange={(e) => setProblemData({ ...problemData, visibleOutput: e.target.value })}
+                        placeholder="Automatically populated from output.txt"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

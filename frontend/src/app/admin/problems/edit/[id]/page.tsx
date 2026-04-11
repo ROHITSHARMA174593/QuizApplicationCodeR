@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Save, Upload, AlertCircle, CheckCircle } from "lucide-react";
+import { ArrowLeft, Save, Upload, AlertCircle, CheckCircle, FileText } from "lucide-react";
 import { toast } from "sonner";
 import api from "@/services/api";
 import { CodingProblem } from "@/types";
@@ -42,8 +42,12 @@ export default function EditProblemPage() {
     e.preventDefault();
     setSaving(true);
     try {
-        // 1. Update text fields
-        await api.put(`/problems/${id}`, problem);
+        const updateData = {
+            ...problem,
+            visibleInput: problem.visibleInput,
+            visibleOutput: problem.visibleOutput
+        };
+        await api.put(`/problems/${id}`, updateData);
 
         // 2. If hidden files selected, replace them
         if (hiddenFiles.input && hiddenFiles.output) {
@@ -65,9 +69,23 @@ export default function EditProblemPage() {
     }
   };
 
-  const handleHiddenFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: "input" | "output") => {
+  const handleHiddenFileChange = async (e: React.ChangeEvent<HTMLInputElement>, type: "input" | "output") => {
     const file = e.target.files?.[0] || null;
     setHiddenFiles(prev => ({ ...prev, [type]: file }));
+
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const text = event.target?.result as string;
+        const lines = text.split(/\r?\n/).filter(line => line.trim() !== "").slice(0, 2).join("\n");
+        
+        setProblem(prev => ({
+          ...prev,
+          [type === "input" ? "visibleInput" : "visibleOutput"]: lines
+        }));
+      };
+      reader.readAsText(file);
+    }
   };
 
   if (loading) return <div className="text-white text-center p-8">Loading...</div>;
@@ -170,31 +188,6 @@ export default function EditProblemPage() {
                     </CardContent>
                 </Card>
 
-                <Card className="bg-zinc-900 border-zinc-800">
-                    <CardHeader>
-                        <CardTitle className="text-white">Visible Test Cases (Text)</CardTitle>
-                    </CardHeader>
-                    <CardContent className="grid grid-cols-2 gap-4">
-                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-400">Visible Input</label>
-                            <textarea
-                                value={problem.visibleInput || ""}
-                                onChange={e => setProblem({...problem, visibleInput: e.target.value})}
-                                className="w-full min-h-[100px] rounded-md border border-zinc-700 bg-black px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
-                                required
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-400">Visible Output</label>
-                            <textarea
-                                value={problem.visibleOutput || ""}
-                                onChange={e => setProblem({...problem, visibleOutput: e.target.value})}
-                                className="w-full min-h-[100px] rounded-md border border-zinc-700 bg-black px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
-                                required
-                            />
-                        </div>
-                    </CardContent>
-                </Card>
                 
                 <Card className="bg-zinc-900 border-zinc-800">
                     <CardHeader>
@@ -203,25 +196,56 @@ export default function EditProblemPage() {
                         </CardTitle>
                         <p className="text-xs text-gray-500">Only upload if you want to replace existing hidden test cases.</p>
                     </CardHeader>
-                    <CardContent className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                             <label className="text-sm font-medium text-gray-400">Full Input File (.txt)</label>
-                             <Input 
-                                type="file" 
-                                accept=".txt"
-                                onChange={(e) => handleHiddenFileChange(e, "input")}
-                                className="bg-black border-zinc-700 file:text-white"
-                             />
+                    <CardContent className="space-y-6">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-gray-400">Full Input File (.txt)</label>
+                                <Input 
+                                    type="file" 
+                                    accept=".txt"
+                                    onChange={(e) => handleHiddenFileChange(e, "input")}
+                                    className="bg-black border-zinc-700 file:text-white"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-gray-400">Full Output File (.txt)</label>
+                                <Input 
+                                    type="file" 
+                                    accept=".txt"
+                                    onChange={(e) => handleHiddenFileChange(e, "output")}
+                                    className="bg-black border-zinc-700 file:text-white"
+                                />
+                            </div>
                         </div>
-                        <div className="space-y-2">
-                             <label className="text-sm font-medium text-gray-400">Full Output File (.txt)</label>
-                             <Input 
-                                type="file" 
-                                accept=".txt"
-                                onChange={(e) => handleHiddenFileChange(e, "output")}
-                                className="bg-black border-zinc-700 file:text-white"
-                             />
-                        </div>
+
+                        {/* Visible Test Case Preview */}
+                        {(problem.visibleInput || problem.visibleOutput) && (
+                            <div className="space-y-4 border p-4 rounded-md border-purple-500/30 bg-purple-500/5">
+                                <h3 className="text-sm font-medium text-purple-400 flex items-center gap-2">
+                                    <FileText size={16} /> Visible Test Cases (Preview)
+                                </h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-xs text-gray-400">Visible Input (First 2 lines)</label>
+                                        <textarea
+                                            className="w-full h-20 rounded-md border border-zinc-700 bg-black text-white p-2 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-purple-500"
+                                            value={problem.visibleInput || ""}
+                                            onChange={(e) => setProblem({ ...problem, visibleInput: e.target.value })}
+                                            placeholder="Automatically populated from input.txt"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs text-gray-400">Visible Output (First 2 lines)</label>
+                                        <textarea
+                                            className="w-full h-20 rounded-md border border-zinc-700 bg-black text-white p-2 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-purple-500"
+                                            value={problem.visibleOutput || ""}
+                                            onChange={(e) => setProblem({ ...problem, visibleOutput: e.target.value })}
+                                            placeholder="Automatically populated from output.txt"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 

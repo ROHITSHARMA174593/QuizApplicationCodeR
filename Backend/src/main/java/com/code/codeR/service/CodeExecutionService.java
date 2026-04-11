@@ -60,144 +60,213 @@ public class CodeExecutionService {
     }
 
     private SubmissionResponse executeInternally(CodingProblem problem, String userCode, String userEmail, boolean visibleOnly) {
-        // ... (rest of the method logic remains the same)
-        // Note: problem.getTestCases() is now already loaded thanks to findByIdWithTestCases
+        final SubmissionResponse[] finalResult = new SubmissionResponse[1];
+        executeInternallyStreaming(problem, userCode, userEmail, visibleOnly, response -> {
+            // Final result is either success=true or an error message (not "Running...")
+            if (response.isSuccess() || (response.getMessage() != null && !response.getMessage().equals("Running..."))) {
+                finalResult[0] = response;
+            }
+        });
+        return finalResult[0];
+    }
+
+    public void submitCodeStreaming(Long problemId, String userCode, String userEmail, java.util.function.Consumer<SubmissionResponse> emitter) {
+        CodingProblem problem = problemRepository.findByIdWithTestCases(problemId)
+                .orElseThrow(() -> new RuntimeException("Problem not found"));
+        
+        try {
+            securityValidator.validate(userCode);
+        } catch (SecurityException e) {
+            emitter.accept(SubmissionResponse.builder().success(false).message(e.getMessage()).build());
+            return;
+        }
+
+        executeInternallyStreaming(problem, userCode, userEmail, false, emitter);
+    }
+
+    public void runVisibleTestStreaming(Long problemId, String userCode, String userEmail, java.util.function.Consumer<SubmissionResponse> emitter) {
+        CodingProblem problem = problemRepository.findByIdWithTestCases(problemId)
+                .orElseThrow(() -> new RuntimeException("Problem not found"));
+
+        try {
+            securityValidator.validate(userCode);
+        } catch (SecurityException e) {
+            emitter.accept(SubmissionResponse.builder().success(false).message(e.getMessage()).build());
+            return;
+        }
+
+        executeInternallyStreaming(problem, userCode, userEmail, true, emitter);
+    }
+
+    private void executeInternallyStreaming(CodingProblem problem, String userCode, String userEmail, boolean visibleOnly, java.util.function.Consumer<SubmissionResponse> emitter) {
         String tempDir = System.getProperty("java.io.tmpdir") + File.separator + "codeR_" + UUID.randomUUID();
         File directory = new File(tempDir);
         
         if (!directory.mkdirs()) {
-             return SubmissionResponse.builder().success(false).message("Internal Server Error: Could not create temp dir").build();
+             emitter.accept(SubmissionResponse.builder().success(false).message("Internal Error").build());
+             return;
         }
 
         try {
-            // 2. Generate Code
+            // 1. Generate & Compile
             String mainCode = mainMethodGenerator.generateMainClass(problem);
-            String solutionCode;
-            if (userCode.contains("class Solution")) {
-                solutionCode = userCode;
-            } else {
-                solutionCode = "public class Solution {\n" + userCode + "\n}";
-            }
-
+            String solutionCode = userCode.contains("class Solution") ? userCode : "public class Solution {\n" + userCode + "\n}";
             Files.writeString(new File(directory, "Main.java").toPath(), mainCode);
             Files.writeString(new File(directory, "Solution.java").toPath(), solutionCode);
 
-            // 3. Compile
-            ProcessBuilder compileProcessBuilder = new ProcessBuilder("javac", "Main.java", "Solution.java");
-            compileProcessBuilder.directory(directory);
-            Process compileProcess = compileProcessBuilder.start();
-            boolean compiled = compileProcess.waitFor(10, TimeUnit.SECONDS);
-            
-            if (!compiled || compileProcess.exitValue() != 0) {
+            ProcessBuilder compilePB = new ProcessBuilder("javac", "Main.java", "Solution.java");
+            compilePB.directory(directory);
+            Process compileProcess = compilePB.start();
+            if (!compileProcess.waitFor(10, TimeUnit.SECONDS) || compileProcess.exitValue() != 0) {
                  String error = new String(compileProcess.getErrorStream().readAllBytes());
-                 return SubmissionResponse.builder()
-                    .success(false)
-                    .message("Compilation Failed")
-                    .output(error.replace(tempDir, "")) 
-                    .build();
+                 emitter.accept(SubmissionResponse.builder().success(false).message("Compilation Failed").output(error.replace(tempDir, "")).build());
+                 return;
             }
 
-            // 4. Run against Test Cases
-            String lastOutput = "";
-            String lastExpected = "";
-
-            // A. Visible Test Case
-            if (problem.getVisibleInput() != null && problem.getVisibleOutput() != null) {
-                List<String> inputs = List.of(problem.getVisibleInput().split("\\R"));
-                List<String> expecteds = List.of(problem.getVisibleOutput().split("\\R"));
-                
-                List<String> results = runBatch(directory, inputs);
-                
-                for (int i = 0; i < inputs.size(); i++) {
-                    String input = inputs.get(i).trim();
-                    if (input.isEmpty()) continue;
-                    
-                    lastExpected = (i < expecteds.size()) ? expecteds.get(i).trim() : "";
-                    lastOutput = (i < results.size()) ? results.get(i) : "ERROR: No output";
-                    
-                    if (lastOutput.startsWith("RUNTIME_ERROR:")) {
-                        return SubmissionResponse.builder()
-                            .success(false)
-                            .message(lastOutput.replace("RUNTIME_ERROR:", "").trim())
-                            .build();
-                    }
-
-                    if (!lastOutput.equals(lastExpected)) {
-                         return SubmissionResponse.builder()
-                            .success(false)
-                            .message("Wrong Answer on Visible Test Case (Line " + (i+1) + ")")
-                            .output(lastOutput)
-                            .expectedOutput(lastExpected)
-                            .build();
+            // 2. Count Total (Visible + Hidden if Submission)
+            int visibleCount = (int) (problem.getVisibleInput() != null ? 
+                java.util.Arrays.stream(problem.getVisibleInput().split("\\R")).filter(s -> !s.trim().isEmpty()).count() : 0);
+            
+            int totalTestCases = visibleCount;
+            if (!visibleOnly) {
+                for (TestCase tc : problem.getTestCases()) {
+                    try (BufferedReader reader = new BufferedReader(new InputStreamReader(fileStorageService.getFileInputStream(tc.getInput(), true)))) {
+                        totalTestCases += (int) reader.lines().filter(s -> !s.trim().isEmpty()).count();
                     }
                 }
             }
 
-            // B. Hidden Test Cases
+            if (totalTestCases == 0) {
+                emitter.accept(SubmissionResponse.builder().success(false).message("No test cases defined for this problem.").build());
+                return;
+            }
+
+            // Send initial count
+            emitter.accept(SubmissionResponse.builder()
+                .totalTestCases(totalTestCases)
+                .passedTestCases(0)
+                .message("Initializing Test Cases...")
+                .build());
+
+            int passedTestCases = 0;
+            
+            // Phase 1: Visible Test Cases
+            List<String> visibleInputs = problem.getVisibleInput() != null ? 
+                java.util.Arrays.stream(problem.getVisibleInput().split("\\R")).filter(s -> !s.trim().isEmpty()).collect(Collectors.toList()) :
+                java.util.Collections.emptyList();
+            List<String> visibleExpecteds = problem.getVisibleOutput() != null ? 
+                java.util.Arrays.asList(problem.getVisibleOutput().split("\\R")) :
+                java.util.Collections.emptyList();
+
+            if (!visibleInputs.isEmpty()) {
+                passedTestCases = runAndStream(directory, visibleInputs, visibleExpecteds, totalTestCases, 0, emitter, false, "Checking Visible Test Cases");
+                if (passedTestCases < visibleInputs.size()) {
+                    return; // Stop on first failure
+                }
+            }
+
+            // Phase 2: Hidden Test Cases (Only if not visibleOnly)
             if (!visibleOnly) {
-                 List<TestCase> hiddenTestCases = problem.getTestCases();
-                 for (TestCase tc : hiddenTestCases) {
-                      String inputKey = tc.getInput();
-                      String outputKey = tc.getExpectedOutput();
-                      
-                      List<String> inputs;
-                      List<String> expecteds;
-                      
-                      try (BufferedReader inputReader = new BufferedReader(new InputStreamReader(fileStorageService.getFileInputStream(inputKey, true)));
-                           BufferedReader expectedReader = new BufferedReader(new InputStreamReader(fileStorageService.getFileInputStream(outputKey, false)))) {
-                           inputs = inputReader.lines().collect(Collectors.toList());
-                           expecteds = expectedReader.lines().collect(Collectors.toList());
-                      }
-
-                      List<String> results = runBatch(directory, inputs);
-                      
-                      for (int i = 0; i < inputs.size(); i++) {
-                          String input = inputs.get(i).trim();
-                          if (input.isEmpty()) continue;
-                          
-                          String expected = (i < expecteds.size()) ? expecteds.get(i).trim() : "";
-                          String result = (i < results.size()) ? results.get(i) : "ERROR: No output";
-
-                          if (result.startsWith("RUNTIME_ERROR:")) {
-                               return SubmissionResponse.builder()
-                                   .success(false)
-                                   .message(result.replace("RUNTIME_ERROR:", "").trim())
-                                   .build();
-                          }
-                          
-                          if (!result.equals(expected)) {
-                               return SubmissionResponse.builder()
-                                    .success(false)
-                                    .message("Wrong Answer on Hidden Test Case")
-                                    .output(result)
-                                    .expectedOutput("Hidden")
-                                    .build();
-                          }
-                          lastOutput = result; // Keep track of last output for final response
-                          lastExpected = expected;
-                      }
-                 }
+                for (TestCase tc : problem.getTestCases()) {
+                    List<String> hInputs;
+                    List<String> hExpecteds;
+                    try (BufferedReader inR = new BufferedReader(new InputStreamReader(fileStorageService.getFileInputStream(tc.getInput(), true)));
+                         BufferedReader exR = new BufferedReader(new InputStreamReader(fileStorageService.getFileInputStream(tc.getExpectedOutput(), false)))) {
+                        hInputs = inR.lines().filter(s -> !s.trim().isEmpty()).collect(Collectors.toList());
+                        hExpecteds = exR.lines().filter(s -> !s.trim().isEmpty()).collect(Collectors.toList());
+                    }
+                    
+                    int currentPassed = runAndStream(directory, hInputs, hExpecteds, totalTestCases, passedTestCases, emitter, true, "Checking Hidden Test Cases");
+                    if (currentPassed < passedTestCases + hInputs.size()) {
+                        return; // Stop on first failure
+                    }
+                    passedTestCases = currentPassed;
+                }
             }
 
-            if (userEmail != null) {
-                updateUserProgress(userEmail, problem);
+            if (passedTestCases == totalTestCases) {
+                if (userEmail != null && !visibleOnly) {
+                    updateUserProgress(userEmail, problem);
+                }
+                emitter.accept(SubmissionResponse.builder()
+                        .success(true)
+                        .message("Accepted")
+                        .passedTestCases(passedTestCases)
+                        .totalTestCases(totalTestCases)
+                        .output("") 
+                        .expectedOutput("")
+                        .build());
             }
-
-            return SubmissionResponse.builder()
-                    .success(true)
-                    .message("Accepted")
-                    .output(lastOutput)
-                    .expectedOutput(lastExpected)
-                    .build();
 
         } catch (Exception e) {
-            return SubmissionResponse.builder()
-                    .success(false)
-                    .message("System Error: " + e.getMessage())
-                    .build();
+            emitter.accept(SubmissionResponse.builder().success(false).message("System Error: " + e.getMessage()).build());
         } finally {
             deleteDirectory(directory);
         }
+    }
+
+    private int runAndStream(File directory, List<String> inputs, List<String> expecteds, int total, int alreadyPassed, java.util.function.Consumer<SubmissionResponse> emitter, boolean isHidden, String statusPrefix) throws IOException, InterruptedException {
+        ProcessBuilder pb = new ProcessBuilder("java", "-cp", ".", "Main");
+        pb.directory(directory);
+        Process process = pb.start();
+
+        // Write inputs in separate thread
+        new Thread(() -> {
+            try (PrintWriter writer = new PrintWriter(new OutputStreamWriter(process.getOutputStream()))) {
+                for (String in : inputs) {
+                    writer.println(in);
+                }
+                writer.flush();
+            }
+        }).start();
+
+        int passedCount = 0;
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+            StringBuilder currentCase = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.equals("---CASE_END---")) {
+                    String result = currentCase.toString().trim();
+                    currentCase.setLength(0);
+                    
+                    String input = inputs.get(passedCount).trim();
+                    String expected = (passedCount < expecteds.size()) ? expecteds.get(passedCount).trim() : "";
+                    
+                    if (result.startsWith("RUNTIME_ERROR:")) {
+                        emitter.accept(SubmissionResponse.builder().success(false).message("Oops! Runtime Error").input(input).output(result.replace("RUNTIME_ERROR:", "").trim()).totalTestCases(total).passedTestCases(alreadyPassed + passedCount).build());
+                        process.destroy();
+                        return alreadyPassed + passedCount;
+                    }
+
+                    if (!result.equals(expected)) {
+                        emitter.accept(SubmissionResponse.builder()
+                            .success(false)
+                            .message("Oops! Test Case Failed")
+                            .input(input)
+                            .output(result)
+                            .expectedOutput(isHidden ? "Hidden" : expected)
+                            .totalTestCases(total)
+                            .passedTestCases(alreadyPassed + passedCount)
+                            .build());
+                        process.destroy();
+                        return alreadyPassed + passedCount;
+                    }
+                    
+                    passedCount++;
+                    emitter.accept(SubmissionResponse.builder()
+                        .totalTestCases(total)
+                        .passedTestCases(alreadyPassed + passedCount)
+                        .message(statusPrefix + "... (" + (alreadyPassed + passedCount) + "/" + total + ")")
+                        .build());
+                } else {
+                    if (currentCase.length() > 0) currentCase.append("\n");
+                    currentCase.append(line);
+                }
+            }
+        }
+
+        process.waitFor(5, TimeUnit.SECONDS);
+        return alreadyPassed + passedCount;
     }
 
     private void updateUserProgress(String email, CodingProblem problem) {
@@ -218,45 +287,6 @@ public class CodeExecutionService {
         user.getSolvedProblems().add(problem);
         userRepository.save(user);
     }
-
-    private List<String> runBatch(File directory, List<String> inputs) throws IOException, InterruptedException {
-        ProcessBuilder runProcessBuilder = new ProcessBuilder("java", "-cp", ".", "Main");
-        runProcessBuilder.directory(directory);
-        Process runProcess = runProcessBuilder.start();
-
-        // Write all inputs to stdin
-        try (PrintWriter writer = new PrintWriter(new OutputStreamWriter(runProcess.getOutputStream()))) {
-            for (String input : inputs) {
-                writer.println(input);
-            }
-            writer.flush();
-        }
-
-        List<String> results = new java.util.ArrayList<>();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(runProcess.getInputStream()))) {
-            StringBuilder currentCase = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (line.equals("---CASE_END---")) {
-                    results.add(currentCase.toString().trim());
-                    currentCase.setLength(0);
-                } else {
-                    if (currentCase.length() > 0) currentCase.append("\n");
-                    currentCase.append(line);
-                }
-            }
-        }
-
-        // Wait with timeout
-        boolean finished = runProcess.waitFor(10, TimeUnit.SECONDS); 
-        if (!finished) {
-            runProcess.destroy();
-            results.add("RUNTIME_ERROR: Time Limit Exceeded");
-        }
-        
-        return results;
-    }
-
 
     private void deleteDirectory(File directoryToBeDeleted) {
         if (directoryToBeDeleted == null || !directoryToBeDeleted.exists()) return;

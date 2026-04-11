@@ -25,7 +25,10 @@ export default function ProblemSolvePage({ params }: { params: Promise<{ id: str
     status: 'success' | 'error', 
     message: string, 
     output?: string, 
-    expectedOutput?: string 
+    expectedOutput?: string,
+    input?: string,
+    totalTestCases?: number,
+    passedTestCases?: number
   } | null>(null);
 
   useEffect(() => {
@@ -84,19 +87,47 @@ class Solution {
     setResult(null);
     
     try {
-        const response = await api.post(`/problems/${problem.id}/run`, {
-            problemId: problem.id,
-            code: code,
-            language: 'java'
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/problems/${problem.id}/run-stream`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({
+                problemId: problem.id,
+                code: code,
+                language: 'java'
+            })
         });
+
+        if (!response.body) return;
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
         
-        const data = response.data;
-        setResult({
-            status: data.success ? 'success' : 'error',
-            message: data.message,
-            output: data.output,
-            expectedOutput: data.expectedOutput
-        });
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+            
+            for (const line of lines) {
+                if (line.startsWith('data:')) {
+                    try {
+                        const data = JSON.parse(line.substring(5));
+                        setResult({
+                            status: data.success === false ? 'error' : 'success',
+                            message: data.message || "Running...",
+                            output: data.output,
+                            expectedOutput: data.expectedOutput,
+                            input: data.input,
+                            totalTestCases: data.totalTestCases,
+                            passedTestCases: data.passedTestCases
+                        });
+                    } catch (e) { console.error("Parse error", e); }
+                }
+            }
+        }
     } catch (error) {
         setResult({
             status: 'error',
@@ -111,30 +142,68 @@ class Solution {
       if (!problem) return;
       setSubmitting(true);
       setResult(null);
+      const controller = new AbortController();
+      const signal = controller.signal;
       
       try {
-          const response = await api.post(`/problems/${problem.id}/submit`, {
-              problemId: problem.id,
-              code: code,
-              language: 'java'
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/problems/${problem.id}/submit-stream`, {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${localStorage.getItem('token')}`
+              },
+              body: JSON.stringify({
+                  problemId: problem.id,
+                  code: code,
+                  language: 'java'
+              }),
+              mode: 'cors',
+              signal
           });
-          
-          const data = response.data;
-          if (data.success) {
-               confetti({
-                  particleCount: 100,
-                  spread: 70,
-                  origin: { y: 0.6 },
-                  colors: ['#22c55e', '#3b82f6', '#eab308']
-               });
+
+          if (!response.ok) {
+              const errorText = await response.text();
+              throw new Error(`Server returned ${response.status}: ${errorText || 'Unknown Error'}`);
           }
-  
-          setResult({
-              status: data.success ? 'success' : 'error',
-              message: data.message,
-              output: data.output, // Might be empty for hidden cases if passing
-              expectedOutput: data.success ? "All Test Cases Passed" : "Hidden Test Case Failed"
-          });
+
+          if (!response.body) throw new Error('No response body received');
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          
+          while (true) {
+              const { value, done } = await reader.read();
+              if (done) break;
+              
+              const chunk = decoder.decode(value);
+              const lines = chunk.split('\n');
+              
+              for (const line of lines) {
+                  if (line.startsWith('data:')) {
+                      try {
+                          const data = JSON.parse(line.substring(5));
+                          
+                          if (data.success === true && data.message === "Accepted") {
+                               confetti({
+                                  particleCount: 150,
+                                  spread: 100,
+                                  origin: { y: 0.6 },
+                                  colors: ['#22c55e', '#3b82f6', '#eab308']
+                               });
+                          }
+
+                          setResult({
+                              status: data.success === false ? 'error' : 'success',
+                              message: data.message || "Running...",
+                              output: data.output,
+                              expectedOutput: data.expectedOutput,
+                              input: data.input,
+                              totalTestCases: data.totalTestCases,
+                              passedTestCases: data.passedTestCases
+                          });
+                      } catch (e) { console.error("Parse error", e); }
+                  }
+              }
+          }
       } catch (error) {
           setResult({
               status: 'error',
@@ -297,33 +366,94 @@ class Solution {
                                 )}
                                 
                                 {result && (
-                                    <div className="flex flex-col gap-4">
-                                        <div className="flex items-center gap-2">
-                                            {result.status === 'success' ? (
-                                                <CheckCircle className="w-5 h-5 text-green-500" />
+                                    <div className="flex flex-col gap-6 animate-in fade-in duration-700">
+                                        <div className="flex items-center gap-3">
+                                            {submitting ? (
+                                                <Loader2 className="w-6 h-6 text-primary animate-spin" />
+                                            ) : result.status === 'success' ? (
+                                                <CheckCircle className="w-6 h-6 text-green-500" />
                                             ) : (
-                                                <AlertCircle className="w-5 h-5 text-red-500" />
+                                                <AlertCircle className="w-6 h-6 text-red-500" />
                                             )}
-                                            <span className={`font-medium ${result.status === 'success' ? 'text-green-600' : 'text-red-500'}`}>
-                                                {result.message}
+                                            <span className={`text-xl font-bold tracking-tight ${
+                                                submitting ? 'text-primary animate-pulse' : 
+                                                result.status === 'success' ? 'text-green-600' : 'text-red-500'
+                                            }`}>
+                                                {submitting 
+                                                    ? (result.message || "Initializing...") 
+                                                    : (result.status === 'success' ? "Accepted" : result.message)
+                                                }
                                             </span>
                                         </div>
                                         
-                                        {(result.output || result.expectedOutput) && (
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="space-y-1">
-                                                    <span className="text-xs text-muted-foreground uppercase tracking-wider">Your Output</span>
-                                                    <div className={`p-3 rounded-md font-mono text-sm border ${
-                                                        result.status === 'success' ? 'bg-green-500/5 border-green-500/20 text-green-700' : 'bg-red-500/5 border-red-500/20 text-red-700'
-                                                    }`}>
-                                                        {result.output || "No output"}
+                                        {/* Progress Bar */}
+                                        {result.totalTestCases !== undefined && (
+                                            <div className="flex flex-col gap-3 p-4 rounded-xl bg-muted/30 border border-border/50 shadow-sm">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                                                        Test Cases Progress
+                                                    </span>
+                                                    <span className={`text-sm font-black tabular-nums ${result.status === 'success' ? 'text-green-500' : 'text-orange-500'}`}>
+                                                        {result.passedTestCases} / {result.totalTestCases}
+                                                    </span>
+                                                </div>
+                                                <div className="w-full h-3 bg-muted rounded-full overflow-hidden border border-border/20 shadow-inner">
+                                                    <div 
+                                                        className={`h-full transition-all duration-700 ease-out rounded-full ${
+                                                            result.status === 'success' ? 'bg-linear-to-r from-green-500 to-emerald-400 shadow-[0_0_15px_rgba(34,197,94,0.3)]' : 
+                                                            'bg-linear-to-r from-orange-500 to-amber-400 shadow-[0_0_15px_rgba(249,115,22,0.3)]'
+                                                        }`}
+                                                        style={{ width: `${(result.passedTestCases! / result.totalTestCases!) * 100}%` }}
+                                                    ></div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Error Display */}
+                                        {result.status === 'error' && !submitting && (
+                                            <div className="p-5 border-2 border-red-500/20 bg-red-500/5 rounded-xl space-y-5 animate-in slide-in-from-top-2 duration-500">
+                                                <div className="flex items-center gap-2 text-red-600">
+                                                    <AlertCircle className="w-5 h-5 font-bold" />
+                                                    <h3 className="font-bold text-base">Oops! Your code failed for a specific input.</h3>
+                                                </div>
+                                                
+                                                <div className="space-y-4">
+                                                    {result.input && (
+                                                        <div className="space-y-2">
+                                                            <span className="text-xs text-red-600/70 uppercase tracking-widest font-black">Failing Input:</span>
+                                                            <div className="p-4 rounded-lg bg-background border border-red-500/10 font-mono text-base text-foreground shadow-sm overflow-x-auto">
+                                                                {result.input}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <div className="space-y-2">
+                                                            <span className="text-xs text-red-600/70 uppercase tracking-widest font-black">Your Output:</span>
+                                                            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 font-mono text-sm text-red-700 min-h-[44px]">
+                                                                {result.output || "No output"}
+                                                            </div>
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <span className="text-xs text-muted-foreground uppercase tracking-widest font-black">Expected Output:</span>
+                                                            <div className="p-3 rounded-lg bg-muted/40 border border-border font-mono text-sm text-foreground min-h-[44px]">
+                                                                {result.expectedOutput || "Hidden"}
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                                <div className="space-y-1">
-                                                    <span className="text-xs text-muted-foreground uppercase tracking-wider">Expected Output</span>
-                                                    <div className="p-3 rounded-md font-mono text-sm bg-muted/30 border border-border text-foreground">
-                                                        {result.expectedOutput || "-"}
-                                                    </div>
+                                            </div>
+                                        )}
+
+                                        {/* Success Display */}
+                                        {result.status === 'success' && !submitting && result.message === "Accepted" && (
+                                            <div className="p-5 border-2 border-green-500/20 bg-green-500/5 rounded-xl flex items-center gap-4 animate-in zoom-in-95 duration-500">
+                                                <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
+                                                    <CheckCircle className="w-7 h-7 text-green-600" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="font-bold text-green-700 text-lg line-height-none">Great job!</h3>
+                                                    <p className="text-green-600/80 text-sm">All test cases passed successfully. You've solved this problem properly.</p>
                                                 </div>
                                             </div>
                                         )}

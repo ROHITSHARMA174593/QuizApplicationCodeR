@@ -10,4 +10,7 @@ public class SubmissionResponse {
     private String message;
     private String output;
     private String expectedOutput;
+    private String input;
+    private int totalTestCases;
+    private int passedTestCases;
 }
